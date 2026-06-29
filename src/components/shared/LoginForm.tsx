@@ -27,7 +27,7 @@ export default function LoginForm() {
     if (result?.error) {
       toast.error("Invalid email or password");
     } else {
-      router.push("/dashboard");
+      router.push("/");
     }
   }
 

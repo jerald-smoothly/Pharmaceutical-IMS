@@ -5,5 +5,5 @@ export default async function RootPage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
   if (["ADMIN", "STAFF"].includes(session.user.role)) redirect("/dashboard");
-  redirect("/portal");
+  redirect("/catalog");
 }
