@@ -67,6 +67,7 @@ export default function SettingsPanel() {
   // ── Profile state ──────────────────────────────────────────
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileSaving, setProfileSaving] = useState(false);
+  const [customerId, setCustomerId] = useState<string | null>(null);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -85,6 +86,7 @@ export default function SettingsPanel() {
     fetch("/api/settings/profile")
       .then((r) => r.json())
       .then((data) => {
+        setCustomerId(data.customerId ?? null);
         setFirstName(data.firstName ?? "");
         setLastName(data.lastName ?? "");
         setEmail(data.email ?? "");
@@ -206,6 +208,17 @@ export default function SettingsPanel() {
         <CardContent className="p-6">
           <h2 className="text-base font-semibold text-gray-900 mb-5">Profile</h2>
           <form onSubmit={onSaveProfile} className="space-y-4">
+            {customerId && (
+              <div>
+                <label className="text-sm font-medium text-gray-700 block mb-1">Customer ID</label>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-sm bg-gray-50 border rounded-lg px-3 py-2 text-gray-700 select-all">
+                    {customerId}
+                  </span>
+                  <span className="text-xs text-muted-foreground">Unique account identifier — never changes</span>
+                </div>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-sm font-medium text-gray-700 block mb-1">First Name</label>

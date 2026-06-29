@@ -9,12 +9,13 @@ export async function GET() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { name: true, email: true, contact: { select: { firstName: true, lastName: true, phone: true } } },
+    select: { name: true, email: true, contact: { select: { customerId: true, firstName: true, lastName: true, phone: true } } },
   });
   if (!user) return Response.json({ error: "Not found" }, { status: 404 });
 
   const parts = (user.name ?? "").split(" ");
   return Response.json({
+    customerId: user.contact?.customerId ?? null,
     firstName: user.contact?.firstName ?? parts[0] ?? "",
     lastName: user.contact?.lastName ?? parts.slice(1).join(" ") ?? "",
     email: user.email,

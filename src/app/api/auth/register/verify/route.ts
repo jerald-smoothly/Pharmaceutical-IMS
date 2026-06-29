@@ -66,8 +66,18 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // Generate next sequential Customer ID within the transaction to avoid races
+    const last = await tx.contact.findFirst({
+      where: { customerId: { not: null } },
+      orderBy: { customerId: "desc" },
+      select: { customerId: true },
+    });
+    const lastNum = last?.customerId ? parseInt(last.customerId.replace("CUST-", ""), 10) : 0;
+    const customerId = `CUST-${String(lastNum + 1).padStart(6, "0")}`;
+
     await tx.contact.create({
       data: {
+        customerId,
         userId: user.id,
         firstName: data.firstName,
         lastName: data.lastName,

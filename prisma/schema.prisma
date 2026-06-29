@@ -107,6 +107,7 @@ model Company {
 
 model Contact {
   id         String   @id @default(cuid())
+  customerId String?  @unique
   userId     String?  @unique
   companyId  String?
   firstName  String
