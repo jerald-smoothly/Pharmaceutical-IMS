@@ -92,6 +92,10 @@ export default function RegisterPage() {
   const [phoneError, setPhoneError] = useState("");
   const [phoneTouched, setPhoneTouched] = useState(false);
 
+  const [confirmError, setConfirmError] = useState("");
+  const passwordRef = useRef<HTMLInputElement>(null);
+  const confirmRef = useRef<HTMLInputElement>(null);
+
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const otpRefs = useRef<Array<HTMLInputElement | null>>([]);
 
@@ -149,9 +153,10 @@ export default function RegisterPage() {
       return;
     }
     if (password !== confirm) {
-      toast.error("Passwords do not match");
+      setConfirmError("Passwords do not match");
       return;
     }
+    setConfirmError("");
 
     // Build full E.164 phone number (+63 912 345 6789 → +639123456789)
     const parsed = parsePhoneNumber(phoneInput, country);
@@ -309,7 +314,7 @@ export default function RegisterPage() {
                       name="firstName"
                       type="text"
                       required
-                      placeholder="Jane"
+                      placeholder="John"
                       onBlur={(e) => { e.target.value = toTitleWord(e.target.value); }}
                       className={inputClass}
                     />
@@ -320,7 +325,7 @@ export default function RegisterPage() {
                       name="lastName"
                       type="text"
                       required
-                      placeholder="Smith-Jones"
+                      placeholder="Smith"
                       onBlur={(e) => { e.target.value = toTitleName(e.target.value); }}
                       className={inputClass}
                     />
@@ -336,7 +341,7 @@ export default function RegisterPage() {
                     placeholder="you@company.com"
                     className={inputClass}
                   />
-                  <p className="text-xs text-muted-foreground mt-1">A verification code will be sent to this address.</p>
+                  <p className="text-xs text-muted-foreground mt-1">A confirmation code will be sent here. You must verify your email to activate your account.</p>
                 </div>
 
                 <div>
@@ -381,24 +386,40 @@ export default function RegisterPage() {
                 <div>
                   <label className="text-sm font-medium text-gray-700 block mb-1">Password</label>
                   <input
+                    ref={passwordRef}
                     name="password"
                     type="password"
                     required
-                    minLength={8}
-                    placeholder="At least 8 characters"
+                    placeholder="Password"
                     className={inputClass}
+                    onChange={(e) => {
+                      if (confirmRef.current?.value) {
+                        setConfirmError(confirmRef.current.value !== e.target.value ? "Passwords do not match" : "");
+                      }
+                    }}
                   />
                 </div>
 
                 <div>
                   <label className="text-sm font-medium text-gray-700 block mb-1">Confirm Password</label>
                   <input
+                    ref={confirmRef}
                     name="confirm"
                     type="password"
                     required
-                    placeholder="Repeat your password"
-                    className={inputClass}
+                    placeholder="Confirm Password"
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (!val) { setConfirmError(""); return; }
+                      setConfirmError(val !== passwordRef.current?.value ? "Passwords do not match" : "");
+                    }}
+                    onBlur={(e) => {
+                      const val = e.target.value;
+                      if (val && val !== passwordRef.current?.value) setConfirmError("Passwords do not match");
+                    }}
+                    className={`${inputClass} ${confirmError ? "border-red-400 focus:ring-red-400" : ""}`}
                   />
+                  {confirmError && <p className="text-xs text-red-500 mt-1">{confirmError}</p>}
                 </div>
 
                 <button
