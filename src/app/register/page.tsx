@@ -315,6 +315,7 @@ export default function RegisterPage() {
                       type="text"
                       required
                       placeholder="John"
+                      onChange={(e) => { e.target.value = e.target.value.replace(/[^A-Za-z]/g, ""); }}
                       onBlur={(e) => { e.target.value = toTitleWord(e.target.value); }}
                       className={inputClass}
                     />
@@ -326,6 +327,7 @@ export default function RegisterPage() {
                       type="text"
                       required
                       placeholder="Smith"
+                      onChange={(e) => { e.target.value = e.target.value.replace(/[^A-Za-z\s-]/g, ""); }}
                       onBlur={(e) => { e.target.value = toTitleName(e.target.value); }}
                       className={inputClass}
                     />
