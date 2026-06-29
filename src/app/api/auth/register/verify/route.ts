@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
         email: data.email,
         passwordHash,
         role: "CUSTOMER",
-        status: "PENDING",
+        status: "ACTIVE",
       },
     });
 

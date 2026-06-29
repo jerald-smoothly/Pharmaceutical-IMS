@@ -25,7 +25,7 @@ export default function LoginForm() {
     setLoading(false);
 
     if (result?.error) {
-      toast.error("Invalid email or password. If you just registered, your account may be awaiting approval.");
+      toast.error("Invalid email or password.");
     } else {
       router.push("/");
     }

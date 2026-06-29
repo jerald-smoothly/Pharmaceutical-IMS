@@ -244,9 +244,9 @@ export default function RegisterPage() {
           <Card>
             <CardContent className="p-8 text-center space-y-3">
               <CheckCircle className="w-12 h-12 text-green-500 mx-auto" />
-              <h2 className="text-lg font-semibold text-gray-900">You&apos;re on the list</h2>
+              <h2 className="text-lg font-semibold text-gray-900">You&apos;re all set!</h2>
               <p className="text-sm text-muted-foreground">
-                Your account has been created and is <strong>pending approval</strong> from an administrator. You&apos;ll be able to sign in once your account is activated.
+                Your account has been verified and is ready to use. You can sign in now.
               </p>
               <Link href="/login" className="inline-block mt-2 text-sm text-blue-600 hover:underline">
                 Back to sign in
@@ -444,7 +444,7 @@ export default function RegisterPage() {
         )}
 
         <p className="text-center text-xs text-muted-foreground mt-6">
-          After verifying your email, your account will be reviewed by an administrator before you can sign in.
+          After verifying your email, you can sign in immediately.
         </p>
       </div>
     </div>
