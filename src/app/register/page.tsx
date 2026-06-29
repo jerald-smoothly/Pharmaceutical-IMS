@@ -5,18 +5,33 @@ import Link from "next/link";
 import { Package, CheckCircle, ArrowLeft } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import PhoneInput, { isValidPhoneNumber } from "react-phone-number-input";
+import { getCountries, getCountryCallingCode } from "react-phone-number-input/input";
+import en from "react-phone-number-input/locale/en.json";
+
+const countryNames = en as Record<string, string>;
+
+const PRIORITY = ["US", "GB", "CA", "AU", "PH"];
+
+const allCountries = getCountries()
+  .map((code) => ({
+    code,
+    name: countryNames[code] ?? code,
+    dial: getCountryCallingCode(code),
+  }))
+  .sort((a, b) => a.name.localeCompare(b.name));
+
+const priorityCountries = PRIORITY.map((c) => allCountries.find((x) => x.code === c)).filter(Boolean) as typeof allCountries;
+const otherCountries = allCountries.filter((c) => !PRIORITY.includes(c.code));
 
 function toTitleWord(str: string) {
-  const trimmed = str.trim();
-  if (!trimmed) return trimmed;
-  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
+  const t = str.trim();
+  return t ? t.charAt(0).toUpperCase() + t.slice(1).toLowerCase() : t;
 }
 
 function toTitleName(str: string) {
   return str
     .split(/(?<=[\s-])/)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .map((p) => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase())
     .join("");
 }
 
@@ -26,11 +41,11 @@ export default function RegisterPage() {
   const [step, setStep] = useState<Step>("form");
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState<string | undefined>();
+  const [dialCode, setDialCode] = useState("1");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const otpRefs = useRef<Array<HTMLInputElement | null>>([]);
 
-  // ── Step 1: submit registration form ──────────────────────────────
   async function onSubmitForm(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
@@ -40,17 +55,18 @@ export default function RegisterPage() {
     const emailVal = fd.get("email") as string;
     const password = fd.get("password") as string;
     const confirm = fd.get("confirm") as string;
+    const digits = phoneNumber.replace(/\D/g, "");
 
     if (!/^[A-Za-z]+$/.test(firstName.trim())) {
-      toast.error("First name must be a single word with letters only");
+      toast.error("First Name must be a single word with letters only");
       return;
     }
     if (!/^[A-Za-z][A-Za-z\s-]*$/.test(lastName.trim())) {
-      toast.error("Last name may only contain letters, spaces, or hyphens");
+      toast.error("Last Name may only contain letters, spaces, or hyphens");
       return;
     }
-    if (!phone || !isValidPhoneNumber(phone)) {
-      toast.error("Please enter a valid phone number with country code");
+    if (digits.length < 7) {
+      toast.error("Please enter a valid Phone Number");
       return;
     }
     if (password !== confirm) {
@@ -66,7 +82,7 @@ export default function RegisterPage() {
         firstName: toTitleWord(firstName),
         lastName: toTitleName(lastName),
         email: emailVal,
-        phone,
+        phone: `+${dialCode}${digits}`,
         password,
       }),
     });
@@ -82,7 +98,6 @@ export default function RegisterPage() {
     setStep("otp");
   }
 
-  // ── Step 2: OTP input ──────────────────────────────────────────────
   function handleOtpKey(index: number, e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Backspace" && !otp[index] && index > 0) {
       otpRefs.current[index - 1]?.focus();
@@ -94,9 +109,7 @@ export default function RegisterPage() {
     const next = [...otp];
     next[index] = digit;
     setOtp(next);
-    if (digit && index < 5) {
-      otpRefs.current[index + 1]?.focus();
-    }
+    if (digit && index < 5) otpRefs.current[index + 1]?.focus();
   }
 
   async function onSubmitOtp(e: React.FormEvent) {
@@ -106,7 +119,6 @@ export default function RegisterPage() {
       toast.error("Please enter the full 6-digit code");
       return;
     }
-
     setLoading(true);
     const res = await fetch("/api/auth/register/verify", {
       method: "POST",
@@ -114,19 +126,12 @@ export default function RegisterPage() {
       body: JSON.stringify({ email, otp: code }),
     });
     setLoading(false);
-
     if (!res.ok) {
       const err = await res.json();
       toast.error(err.error ?? "Verification failed");
       return;
     }
-
     setStep("done");
-  }
-
-  async function resendOtp() {
-    toast.info("A new code is being sent...");
-    // Re-POST is handled server-side by deleting old tokens
   }
 
   const inputClass =
@@ -197,12 +202,12 @@ export default function RegisterPage() {
                   disabled={loading}
                   className="w-full h-10 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-all disabled:opacity-50"
                 >
-                  {loading ? "Verifying..." : "Verify email"}
+                  {loading ? "Verifying..." : "Verify Email"}
                 </button>
               </form>
               <p className="text-center text-xs text-muted-foreground">
                 Didn&apos;t receive it?{" "}
-                <button onClick={resendOtp} className="text-blue-600 hover:underline">
+                <button onClick={() => toast.info("Please go back and submit the form again to resend.")} className="text-blue-600 hover:underline">
                   Resend code
                 </button>
               </p>
@@ -217,7 +222,7 @@ export default function RegisterPage() {
               <form onSubmit={onSubmitForm} className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-sm font-medium text-gray-700 block mb-1">First name</label>
+                    <label className="text-sm font-medium text-gray-700 block mb-1">First Name</label>
                     <input
                       name="firstName"
                       type="text"
@@ -228,7 +233,7 @@ export default function RegisterPage() {
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-700 block mb-1">Last name</label>
+                    <label className="text-sm font-medium text-gray-700 block mb-1">Last Name</label>
                     <input
                       name="lastName"
                       type="text"
@@ -241,7 +246,7 @@ export default function RegisterPage() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-gray-700 block mb-1">Email address</label>
+                  <label className="text-sm font-medium text-gray-700 block mb-1">Email Address</label>
                   <input
                     name="email"
                     type="email"
@@ -253,15 +258,36 @@ export default function RegisterPage() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-gray-700 block mb-1">Phone number</label>
-                  <PhoneInput
-                    placeholder="Enter phone number"
-                    value={phone}
-                    onChange={setPhone}
-                    defaultCountry="US"
-                    international
-                    countryCallingCodeEditable={false}
-                  />
+                  <label className="text-sm font-medium text-gray-700 block mb-1">Phone Number</label>
+                  <div className="flex gap-2">
+                    <select
+                      value={dialCode}
+                      onChange={(e) => setDialCode(e.target.value)}
+                      className="border rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white w-48 shrink-0"
+                    >
+                      <optgroup label="Common">
+                        {priorityCountries.map((c) => (
+                          <option key={c.code} value={c.dial}>
+                            {c.name} (+{c.dial})
+                          </option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="All Countries">
+                        {otherCountries.map((c) => (
+                          <option key={c.code} value={c.dial}>
+                            {c.name} (+{c.dial})
+                          </option>
+                        ))}
+                      </optgroup>
+                    </select>
+                    <input
+                      type="tel"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      placeholder="Phone number"
+                      className={inputClass}
+                    />
+                  </div>
                 </div>
 
                 <div>
@@ -277,7 +303,7 @@ export default function RegisterPage() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-gray-700 block mb-1">Confirm password</label>
+                  <label className="text-sm font-medium text-gray-700 block mb-1">Confirm Password</label>
                   <input
                     name="confirm"
                     type="password"
@@ -292,13 +318,13 @@ export default function RegisterPage() {
                   disabled={loading}
                   className="w-full h-10 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-all disabled:opacity-50"
                 >
-                  {loading ? "Sending code..." : "Continue"}
+                  {loading ? "Sending Code..." : "Continue"}
                 </button>
 
                 <p className="text-center text-sm text-muted-foreground">
                   Already have an account?{" "}
                   <Link href="/login" className="text-blue-600 hover:underline">
-                    Sign in
+                    Sign In
                   </Link>
                 </p>
               </form>
