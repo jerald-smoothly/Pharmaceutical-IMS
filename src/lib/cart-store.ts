@@ -50,6 +50,6 @@ export const useCart = create<CartStore>()(
       clear: () => set({ items: [] }),
       total: () => get().items.reduce((s, i) => s + i.unitPrice * i.quantity, 0),
     }),
-    { name: "pharmaflow-cart" }
+    { name: "rxpharmas-cart" }
   )
 );

@@ -1,9 +1,9 @@
 export const openapiSpec = {
   openapi: "3.0.3",
   info: {
-    title: "PharmaFlow API",
+    title: "RxPharmas API",
     description:
-      "REST API for the PharmaFlow pharmaceutical inventory management and ordering system.\n\n" +
+      "REST API for the RxPharmas pharmaceutical inventory management and ordering system.\n\n" +
       "## Authentication\n" +
       "Most endpoints require a session cookie obtained via `POST /api/auth/callback/credentials`.\n" +
       "Staff/Admin endpoints additionally require the `ADMIN` or `STAFF` role.\n\n" +
@@ -13,7 +13,7 @@ export const openapiSpec = {
       "- **CUSTOMER** — ordering portal only",
     version: "1.0.0",
     contact: {
-      name: "PharmaFlow Support",
+      name: "RxPharmas Support",
     },
   },
   servers: [

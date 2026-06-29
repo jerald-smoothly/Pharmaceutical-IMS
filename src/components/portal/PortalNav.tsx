@@ -26,7 +26,7 @@ export default function PortalNav({ user }: Props) {
             <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center">
               <Package className="w-3.5 h-3.5 text-white" />
             </div>
-            <span className="font-semibold text-sm">PharmaFlow</span>
+            <span className="font-semibold text-sm">RxPharmas</span>
           </div>
           <nav className="flex items-center gap-1">
             {nav.map(({ label, href, icon: Icon }) => (

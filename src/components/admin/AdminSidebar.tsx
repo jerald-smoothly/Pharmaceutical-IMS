@@ -47,7 +47,7 @@ export default function AdminSidebar({ user }: Props) {
             <Package className="w-4 h-4 text-white" />
           </div>
           <div>
-            <p className="font-semibold text-sm">PharmaFlow</p>
+            <p className="font-semibold text-sm">RxPharmas</p>
             <p className="text-xs text-muted-foreground capitalize">
               {(user.role ?? "staff").toLowerCase()}
             </p>

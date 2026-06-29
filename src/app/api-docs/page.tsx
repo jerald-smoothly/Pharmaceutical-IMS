@@ -1,12 +1,12 @@
 export const metadata = {
-  title: "API Docs — PharmaFlow",
+  title: "API Docs — RxPharmas",
 };
 
 export default function ApiDocsPage() {
   return (
     <html lang="en">
       <head>
-        <title>PharmaFlow API Docs</title>
+        <title>RxPharmas API Docs</title>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link
