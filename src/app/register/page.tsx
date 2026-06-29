@@ -131,7 +131,7 @@ export default function RegisterPage() {
 
     // Build full E.164 phone number (+63 912 345 6789 → +639123456789)
     const parsed = parsePhoneNumber(phoneInput, country);
-    const fullPhone = parsed?.number ?? `+${getCountryCallingCode(country)}${phoneInput.replace(/\D/g, "")}`;
+    const fullPhone = parsed?.formatInternational() ?? `+${getCountryCallingCode(country)} ${phoneInput.replace(/\D/g, "")}`;
 
     setLoading(true);
     const res = await fetch("/api/auth/register", {
