@@ -13,7 +13,8 @@ model User {
   email         String    @unique
   name          String?
   passwordHash  String?
-  role          UserRole  @default(CUSTOMER)
+  role          UserRole   @default(CUSTOMER)
+  status        UserStatus @default(ACTIVE)
   image         String?
   emailVerified DateTime?
   createdAt     DateTime  @default(now())
@@ -70,6 +71,12 @@ enum UserRole {
   ADMIN
   STAFF
   CUSTOMER
+}
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
 }
 
 // ─── CRM ─────────────────────────────────────────────────────────────────────

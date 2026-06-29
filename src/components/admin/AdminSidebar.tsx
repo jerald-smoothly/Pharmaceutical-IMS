@@ -11,6 +11,7 @@ import {
   ShoppingCart,
   LogOut,
   FileCode2,
+  UserCog,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
@@ -23,6 +24,7 @@ const nav = [
   { label: "Contacts", href: "/crm/contacts", icon: Users },
   { label: "Companies", href: "/crm/companies", icon: Building2 },
   { label: "Orders", href: "/orders", icon: ShoppingCart },
+  { label: "Users", href: "/users", icon: UserCog },
   { label: "API Docs", href: "/api-docs", icon: FileCode2 },
 ];
 

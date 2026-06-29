@@ -1,5 +1,6 @@
 import LoginForm from "@/components/shared/LoginForm";
 import { Package } from "lucide-react";
+import Link from "next/link";
 
 export default function LoginPage() {
   return (
@@ -13,6 +14,12 @@ export default function LoginPage() {
           <p className="text-muted-foreground mt-1">Sign in to your account</p>
         </div>
         <LoginForm />
+        <p className="text-center text-sm text-muted-foreground mt-4">
+          New customer?{" "}
+          <Link href="/register" className="text-blue-600 hover:underline">
+            Create an account
+          </Link>
+        </p>
       </div>
     </div>
   );
