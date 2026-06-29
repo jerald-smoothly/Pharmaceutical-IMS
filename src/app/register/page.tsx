@@ -7,14 +7,22 @@ import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { getCountries, getCountryCallingCode } from "react-phone-number-input/input";
 import en from "react-phone-number-input/locale/en.json";
+import {
+  getExampleNumber,
+  AsYouType,
+  isValidPhoneNumber,
+  parsePhoneNumber,
+  type CountryCode,
+} from "libphonenumber-js";
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const phoneExamples = require("libphonenumber-js/examples.mobile.json");
 
 const countryNames = en as Record<string, string>;
-
-const PRIORITY = ["US", "GB", "CA", "AU", "PH"];
+const PRIORITY: CountryCode[] = ["US", "GB", "CA", "AU", "PH"];
 
 const allCountries = getCountries()
   .map((code) => ({
-    code,
+    code: code as CountryCode,
     name: countryNames[code] ?? code,
     dial: getCountryCallingCode(code),
   }))
@@ -22,6 +30,18 @@ const allCountries = getCountries()
 
 const priorityCountries = PRIORITY.map((c) => allCountries.find((x) => x.code === c)).filter(Boolean) as typeof allCountries;
 const otherCountries = allCountries.filter((c) => !PRIORITY.includes(c.code));
+
+function getPlaceholder(country: CountryCode): string {
+  try {
+    const example = getExampleNumber(country, phoneExamples);
+    if (!example) return "Phone number";
+    const national = example.formatNational();
+    // Strip leading country code digits if they appear (some locales prepend them)
+    return national;
+  } catch {
+    return "Phone number";
+  }
+}
 
 function toTitleWord(str: string) {
   const t = str.trim();
@@ -41,10 +61,44 @@ export default function RegisterPage() {
   const [step, setStep] = useState<Step>("form");
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
-  const [dialCode, setDialCode] = useState("1");
-  const [phoneNumber, setPhoneNumber] = useState("");
+
+  const [country, setCountry] = useState<CountryCode>("US");
+  const [phoneInput, setPhoneInput] = useState("");
+  const [phoneError, setPhoneError] = useState("");
+  const [phoneTouched, setPhoneTouched] = useState(false);
+
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const otpRefs = useRef<Array<HTMLInputElement | null>>([]);
+
+  function handleCountryChange(code: CountryCode) {
+    setCountry(code);
+    setPhoneInput("");
+    setPhoneError("");
+    setPhoneTouched(false);
+  }
+
+  function handlePhoneChange(value: string) {
+    const formatter = new AsYouType(country);
+    const formatted = formatter.input(value);
+    setPhoneInput(formatted);
+    // Live validation once the user has started typing
+    if (phoneTouched && formatted) {
+      const valid = isValidPhoneNumber(formatted, country);
+      setPhoneError(valid ? "" : `Invalid format. Example: ${getPlaceholder(country)}`);
+    } else {
+      setPhoneError("");
+    }
+  }
+
+  function handlePhoneBlur() {
+    setPhoneTouched(true);
+    if (!phoneInput) {
+      setPhoneError("");
+      return;
+    }
+    const valid = isValidPhoneNumber(phoneInput, country);
+    setPhoneError(valid ? "" : `Invalid format. Example: ${getPlaceholder(country)}`);
+  }
 
   async function onSubmitForm(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -55,7 +109,6 @@ export default function RegisterPage() {
     const emailVal = fd.get("email") as string;
     const password = fd.get("password") as string;
     const confirm = fd.get("confirm") as string;
-    const digits = phoneNumber.replace(/\D/g, "");
 
     if (!/^[A-Za-z]+$/.test(firstName.trim())) {
       toast.error("First Name must be a single word with letters only");
@@ -65,7 +118,9 @@ export default function RegisterPage() {
       toast.error("Last Name may only contain letters, spaces, or hyphens");
       return;
     }
-    if (digits.length < 7) {
+    if (!phoneInput || !isValidPhoneNumber(phoneInput, country)) {
+      setPhoneTouched(true);
+      setPhoneError(`Invalid format. Example: ${getPlaceholder(country)}`);
       toast.error("Please enter a valid Phone Number");
       return;
     }
@@ -73,6 +128,10 @@ export default function RegisterPage() {
       toast.error("Passwords do not match");
       return;
     }
+
+    // Build full E.164 phone number (+63 912 345 6789 → +639123456789)
+    const parsed = parsePhoneNumber(phoneInput, country);
+    const fullPhone = parsed?.number ?? `+${getCountryCallingCode(country)}${phoneInput.replace(/\D/g, "")}`;
 
     setLoading(true);
     const res = await fetch("/api/auth/register", {
@@ -82,7 +141,7 @@ export default function RegisterPage() {
         firstName: toTitleWord(firstName),
         lastName: toTitleName(lastName),
         email: emailVal,
-        phone: `+${dialCode}${digits}`,
+        phone: fullPhone,
         password,
       }),
     });
@@ -134,8 +193,7 @@ export default function RegisterPage() {
     setStep("done");
   }
 
-  const inputClass =
-    "w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder:text-gray-400";
+  const inputClass = "w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder:text-gray-400";
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-10">
@@ -207,7 +265,7 @@ export default function RegisterPage() {
               </form>
               <p className="text-center text-xs text-muted-foreground">
                 Didn&apos;t receive it?{" "}
-                <button onClick={() => toast.info("Please go back and submit the form again to resend.")} className="text-blue-600 hover:underline">
+                <button onClick={() => { setStep("form"); toast.info("Edit your details and submit again to resend."); }} className="text-blue-600 hover:underline">
                   Resend code
                 </button>
               </p>
@@ -261,33 +319,39 @@ export default function RegisterPage() {
                   <label className="text-sm font-medium text-gray-700 block mb-1">Phone Number</label>
                   <div className="flex gap-2">
                     <select
-                      value={dialCode}
-                      onChange={(e) => setDialCode(e.target.value)}
+                      value={country}
+                      onChange={(e) => handleCountryChange(e.target.value as CountryCode)}
                       className="border rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white w-48 shrink-0"
                     >
                       <optgroup label="Common">
                         {priorityCountries.map((c) => (
-                          <option key={c.code} value={c.dial}>
+                          <option key={c.code} value={c.code}>
                             {c.name} (+{c.dial})
                           </option>
                         ))}
                       </optgroup>
                       <optgroup label="All Countries">
                         {otherCountries.map((c) => (
-                          <option key={c.code} value={c.dial}>
+                          <option key={c.code} value={c.code}>
                             {c.name} (+{c.dial})
                           </option>
                         ))}
                       </optgroup>
                     </select>
-                    <input
-                      type="tel"
-                      value={phoneNumber}
-                      onChange={(e) => setPhoneNumber(e.target.value)}
-                      placeholder="Phone number"
-                      className={inputClass}
-                    />
+                    <div className="flex-1 flex flex-col">
+                      <input
+                        type="tel"
+                        value={phoneInput}
+                        onChange={(e) => handlePhoneChange(e.target.value)}
+                        onBlur={handlePhoneBlur}
+                        placeholder={getPlaceholder(country)}
+                        className={`${inputClass} ${phoneError ? "border-red-400 focus:ring-red-400" : ""}`}
+                      />
+                    </div>
                   </div>
+                  {phoneError && (
+                    <p className="text-xs text-red-500 mt-1">{phoneError}</p>
+                  )}
                 </div>
 
                 <div>
