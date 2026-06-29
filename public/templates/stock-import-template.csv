@@ -1,0 +1,4 @@
+sku,name,generic_name,manufacturer,category,unit,unit_price,batch_number,expiry_date,quantity,cost_price,supplier,requires_prescription
+AMX500-CAP,Amoxicillin 500mg Capsules,Amoxicillin,Pharma Corp,Antibiotics,box,12.50,BATCH-2024-001,2026-06-30,200,8.00,MedSupply Inc,no
+PARA500-TAB,Paracetamol 500mg Tablets,Paracetamol,Generic Labs,Analgesics,strip,3.75,BATCH-2024-002,2026-12-31,500,2.00,MedSupply Inc,no
+OMEP20-CAP,Omeprazole 20mg Capsules,Omeprazole,Gastro Pharma,Gastrointestinal,box,18.90,BATCH-2024-003,2025-09-30,150,11.00,PharmaWholesale,yes
