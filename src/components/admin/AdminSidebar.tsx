@@ -12,20 +12,28 @@ import {
   LogOut,
   FileCode2,
   UserCog,
+  Settings,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
-const nav = [
+const baseNav = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Inventory", href: "/inventory", icon: Package },
   { label: "Import Stock", href: "/inventory/import", icon: Upload },
   { label: "Contacts", href: "/crm/contacts", icon: Users },
   { label: "Companies", href: "/crm/companies", icon: Building2 },
   { label: "Orders", href: "/orders", icon: ShoppingCart },
-  { label: "Users", href: "/users", icon: UserCog },
   { label: "API Docs", href: "/api-docs", icon: FileCode2 },
+];
+
+const adminOnlyNav = [
+  { label: "Users", href: "/users", icon: UserCog },
+];
+
+const bottomNav = [
+  { label: "Settings", href: "/settings", icon: Settings },
 ];
 
 interface Props {
@@ -34,6 +42,10 @@ interface Props {
 
 export default function AdminSidebar({ user }: Props) {
   const pathname = usePathname();
+  const isAdmin = user.role === "ADMIN";
+
+  const nav = isAdmin ? [...baseNav, ...adminOnlyNav, ...bottomNav] : [...baseNav, ...bottomNav];
+
   const initials = (user.name ?? user.email ?? "U")
     .split(" ")
     .map((w) => w[0])

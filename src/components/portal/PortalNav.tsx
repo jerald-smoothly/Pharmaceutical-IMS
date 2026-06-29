@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Package, ShoppingCart, ClipboardList, LogOut } from "lucide-react";
+import { Package, ClipboardList, LogOut, Settings } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 
 const nav = [
   { label: "Catalog", href: "/catalog", icon: Package },
   { label: "My Orders", href: "/my-orders", icon: ClipboardList },
+  { label: "Settings", href: "/settings", icon: Settings },
 ];
 
 interface Props {
