@@ -36,10 +36,35 @@ function getPlaceholder(country: CountryCode): string {
     const example = getExampleNumber(country, phoneExamples);
     if (!example) return "Phone number";
     const national = example.formatNational();
-    // Strip leading country code digits if they appear (some locales prepend them)
+    // Countries whose national format starts with "0" (trunk prefix) store numbers
+    // without that 0 (e.g. PH stores "+63 905 123 4567", not "+63 0905 123 4567").
+    // Show the placeholder as the international format minus the country code so
+    // what the user sees in the placeholder matches what ends up in the record.
+    if (national.startsWith("0")) {
+      const code = getCountryCallingCode(country);
+      return example.formatInternational().replace(`+${code} `, "");
+    }
     return national;
   } catch {
     return "Phone number";
+  }
+}
+
+function formatPhoneInput(rawInput: string, country: CountryCode): string {
+  try {
+    const ex = getExampleNumber(country, phoneExamples);
+    const hasTrunk = ex?.formatNational().startsWith("0") ?? false;
+    if (hasTrunk) {
+      const digits = rawInput.replace(/\D/g, "");
+      if (!digits) return "";
+      // Prepend trunk prefix so AsYouType spaces correctly, then strip it back off
+      const prefixed = digits.startsWith("0") ? digits : "0" + digits;
+      const formatted = new AsYouType(country).input(prefixed);
+      return formatted.startsWith("0") ? formatted.slice(1).replace(/^\s+/, "") : formatted;
+    }
+    return new AsYouType(country).input(rawInput);
+  } catch {
+    return rawInput;
   }
 }
 
@@ -78,8 +103,7 @@ export default function RegisterPage() {
   }
 
   function handlePhoneChange(value: string) {
-    const formatter = new AsYouType(country);
-    const formatted = formatter.input(value);
+    const formatted = formatPhoneInput(value, country);
     setPhoneInput(formatted);
     // Live validation once the user has started typing
     if (phoneTouched && formatted) {
