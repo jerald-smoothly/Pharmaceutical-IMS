@@ -343,7 +343,7 @@ export default function RegisterPage() {
                     placeholder="you@company.com"
                     className={inputClass}
                   />
-                  <p className="text-xs text-muted-foreground mt-1">A confirmation code will be sent here. You must verify your email to activate your account.</p>
+                  <p className="text-xs text-muted-foreground mt-1">A confirmation code will be sent to your email address. You must verify your email to activate your account.</p>
                 </div>
 
                 <div>
