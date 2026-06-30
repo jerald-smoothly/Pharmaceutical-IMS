@@ -86,10 +86,10 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
                   {contact.phone}
                 </div>
               )}
-              {(contact.title || contact.department) && (
+              {contact.title && (
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Briefcase className="w-4 h-4 shrink-0" />
-                  {[contact.title, contact.department].filter(Boolean).join(" · ")}
+                  {contact.title}
                 </div>
               )}
               {contact.customerId && (
@@ -148,15 +148,6 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
               <CardTitle className="text-base flex items-center gap-2">
                 <ShoppingCart className="w-4 h-4" />
                 Orders Placed
-                {contact.company && (
-                  <span className="ml-auto text-xs font-normal text-muted-foreground">
-                    Included in{" "}
-                    <Link href={`/crm/companies/${contact.company.id}`} className="text-blue-600 hover:underline">
-                      {contact.company.name}
-                    </Link>
-                    &apos;s totals
-                  </span>
-                )}
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
