@@ -35,7 +35,6 @@ const inputClass = "w-full border border-[var(--rx-border)] rounded-lg px-3 py-2
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<"pending" | "all">("all");
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
   const [acting, setActing] = useState<string | null>(null);
@@ -88,9 +87,7 @@ export default function UsersPage() {
     (e.target as HTMLFormElement).reset();
   }
 
-  const staffUsers = users.filter((u) => u.role !== "CUSTOMER");
-  const pending = staffUsers.filter((u) => u.status === "PENDING");
-  const displayed = tab === "pending" ? pending : staffUsers;
+  const displayed = users.filter((u) => u.role !== "CUSTOMER");
 
   return (
     <div className="p-8 space-y-6 max-w-5xl">
@@ -145,29 +142,11 @@ export default function UsersPage() {
         </Card>
       )}
 
-      <div className="flex gap-1 border-b border-[var(--rx-border)]">
-        <button
-          onClick={() => setTab("all")}
-          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${tab === "all" ? "border-blue-600 text-blue-600" : "border-transparent text-[var(--rx-text-muted)] hover:text-[var(--rx-text-strong)]"}`}
-        >
-          All Users
-        </button>
-        <button
-          onClick={() => setTab("pending")}
-          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${tab === "pending" ? "border-blue-600 text-blue-600" : "border-transparent text-[var(--rx-text-muted)] hover:text-[var(--rx-text-strong)]"}`}
-        >
-          Pending Approval
-          {pending.length > 0 && (
-            <span className="ml-2 inline-flex items-center justify-center w-5 h-5 rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-500/15 dark:text-yellow-400 text-xs font-bold">{pending.length}</span>
-          )}
-        </button>
-      </div>
-
       {loading ? (
         <div className="text-center py-12 text-[var(--rx-text-muted)] text-sm">Loading...</div>
       ) : displayed.length === 0 ? (
         <div className="text-center py-12 text-[var(--rx-text-muted)] text-sm bg-[var(--rx-surface)] rounded-xl border border-[var(--rx-border)]">
-          {tab === "pending" ? "No pending registrations" : "No users found"}
+          No users found
         </div>
       ) : (
         <div className="bg-[var(--rx-surface)] rounded-xl border border-[var(--rx-border)] overflow-hidden">
