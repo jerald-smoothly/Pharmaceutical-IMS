@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "sonner";
-import { UserPlus, CheckCircle, Ban, RefreshCw, Building2, KeyRound } from "lucide-react";
+import { UserPlus, CheckCircle, Ban, RefreshCw, Building2, KeyRound, MoreVertical } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type UserStatus = "PENDING" | "ACTIVE" | "SUSPENDED";
@@ -46,6 +46,9 @@ export default function UsersPage() {
   const staffConfirmRef = useRef<HTMLInputElement>(null);
   const newPwRef = useRef<HTMLInputElement>(null);
   const confirmPwRef = useRef<HTMLInputElement>(null);
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -55,6 +58,27 @@ export default function UsersPage() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (!openMenu) return;
+    function closeOnOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setOpenMenu(null);
+    }
+    function closeOnScroll() { setOpenMenu(null); }
+    document.addEventListener("mousedown", closeOnOutside);
+    window.addEventListener("scroll", closeOnScroll, true);
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutside);
+      window.removeEventListener("scroll", closeOnScroll, true);
+    };
+  }, [openMenu]);
+
+  function toggleMenu(id: string, e: React.MouseEvent<HTMLButtonElement>) {
+    if (openMenu === id) { setOpenMenu(null); return; }
+    const rect = e.currentTarget.getBoundingClientRect();
+    setOpenMenu(id);
+    setMenuPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
+  }
 
   async function updateStatus(id: string, status: UserStatus) {
     setActing(id);
@@ -239,7 +263,7 @@ export default function UsersPage() {
                 <th className="px-4 py-3 text-center font-medium text-[var(--rx-text-secondary)]">Role</th>
                 <th className="px-4 py-3 text-center font-medium text-[var(--rx-text-secondary)]">Status</th>
                 <th className="px-4 py-3 text-center font-medium text-[var(--rx-text-secondary)]">Registered</th>
-                <th className="px-4 py-3 text-center font-medium text-[var(--rx-text-secondary)]">Actions</th>
+                <th className="w-10"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--rx-border)]">
@@ -272,40 +296,13 @@ export default function UsersPage() {
                   <td className="px-4 py-3 text-center text-[var(--rx-text-muted)]">
                     {new Date(u.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-center gap-2">
-                      {u.status === "PENDING" && (
-                        <button
-                          onClick={() => updateStatus(u.id, "ACTIVE")}
-                          disabled={acting === u.id}
-                          className="inline-flex items-center gap-1 h-7 px-3 rounded-lg text-xs font-medium bg-green-600 text-white hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-400 disabled:opacity-50 transition-all"
-                        >
-                          <CheckCircle className="w-3 h-3" /> Approve
-                        </button>
-                      )}
-                      {u.status === "ACTIVE" && (
-                        <button
-                          onClick={() => updateStatus(u.id, "SUSPENDED")}
-                          disabled={acting === u.id}
-                          className="inline-flex items-center gap-1 h-7 px-3 rounded-lg text-xs font-medium border border-red-300 text-red-600 hover:bg-red-50 dark:border-red-500/40 dark:text-red-400 dark:hover:bg-red-500/10 disabled:opacity-50 transition-all"
-                        >
-                          <Ban className="w-3 h-3" /> Suspend
-                        </button>
-                      )}
-                      {u.status === "SUSPENDED" && (
-                        <button
-                          onClick={() => updateStatus(u.id, "ACTIVE")}
-                          disabled={acting === u.id}
-                          className="inline-flex items-center gap-1 h-7 px-3 rounded-lg text-xs font-medium border border-[var(--rx-border)] text-[var(--rx-text-body)] hover:bg-[var(--rx-border-subtle)] disabled:opacity-50 transition-all"
-                        >
-                          <RefreshCw className="w-3 h-3" /> Reactivate
-                        </button>
-                      )}
+                  <td className="px-2 py-3">
+                    <div className="flex justify-center">
                       <button
-                        onClick={() => { setChangePwUser({ id: u.id, name: u.contact?.firstName ?? u.name ?? u.email }); setPwError(null); }}
-                        className="inline-flex items-center gap-1 h-7 px-3 rounded-lg text-xs font-medium border border-[var(--rx-border)] text-[var(--rx-text-body)] hover:bg-[var(--rx-border-subtle)] transition-all"
+                        onClick={(e) => toggleMenu(u.id, e)}
+                        className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-[var(--rx-border-subtle)] text-[var(--rx-text-muted)] transition-colors"
                       >
-                        <KeyRound className="w-3 h-3" /> Change Password
+                        <MoreVertical className="w-4 h-4" />
                       </button>
                     </div>
                   </td>
@@ -315,6 +312,53 @@ export default function UsersPage() {
           </table>
         </div>
       )}
+
+      {openMenu && menuPos && (() => {
+        const u = users.find((x) => x.id === openMenu);
+        if (!u) return null;
+        return (
+          <div
+            ref={menuRef}
+            style={{ position: "fixed", top: menuPos.top, right: menuPos.right, zIndex: 50 }}
+            className="bg-[var(--rx-surface)] border border-[var(--rx-border)] rounded-lg shadow-lg py-1 min-w-[170px]"
+          >
+            {u.status === "PENDING" && (
+              <button
+                onClick={() => { updateStatus(u.id, "ACTIVE"); setOpenMenu(null); }}
+                disabled={acting === u.id}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-green-600 hover:bg-[var(--rx-border-subtle)] disabled:opacity-50 transition-colors"
+              >
+                <CheckCircle className="w-4 h-4" /> Approve
+              </button>
+            )}
+            {u.status === "ACTIVE" && (
+              <button
+                onClick={() => { updateStatus(u.id, "SUSPENDED"); setOpenMenu(null); }}
+                disabled={acting === u.id}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-[var(--rx-border-subtle)] disabled:opacity-50 transition-colors"
+              >
+                <Ban className="w-4 h-4" /> Suspend
+              </button>
+            )}
+            {u.status === "SUSPENDED" && (
+              <button
+                onClick={() => { updateStatus(u.id, "ACTIVE"); setOpenMenu(null); }}
+                disabled={acting === u.id}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[var(--rx-text-body)] hover:bg-[var(--rx-border-subtle)] disabled:opacity-50 transition-colors"
+              >
+                <RefreshCw className="w-4 h-4" /> Reactivate
+              </button>
+            )}
+            <div className="border-t border-[var(--rx-border)] my-1" />
+            <button
+              onClick={() => { setChangePwUser({ id: u.id, name: u.contact?.firstName ?? u.name ?? u.email }); setPwError(null); setOpenMenu(null); }}
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[var(--rx-text-body)] hover:bg-[var(--rx-border-subtle)] transition-colors"
+            >
+              <KeyRound className="w-4 h-4" /> Change Password
+            </button>
+          </div>
+        );
+      })()}
 
       {changePwUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
