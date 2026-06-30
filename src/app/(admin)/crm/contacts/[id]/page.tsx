@@ -1,20 +1,10 @@
 import { prisma } from "@/lib/db";
 import { notFound } from "next/navigation";
-import { Building2, ShoppingCart } from "lucide-react";
+import { Mail, Phone, Briefcase, Hash, FileText, Building2, ShoppingCart } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import ContactFormDialog from "@/components/admin/ContactFormDialog";
 import AssignCompanyDialog from "@/components/admin/AssignCompanyDialog";
-
-
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex items-start gap-2 py-2.5 border-b last:border-0">
-      <span className="text-xs font-medium text-muted-foreground w-28 shrink-0 pt-0.5">{label}</span>
-      <span className="text-sm text-gray-900 flex-1">{children}</span>
-    </div>
-  );
-}
 
 export default async function ContactDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -24,9 +14,7 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
       where: { id },
       include: {
         company: { select: { id: true, name: true, industry: true } },
-        orders: {
-          orderBy: { placedAt: "desc" },
-        },
+        orders: { orderBy: { placedAt: "desc" } },
       },
     }),
     prisma.company.findMany({
@@ -39,15 +27,24 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
   if (!contact) notFound();
 
   const totalOrders = contact.orders.length;
-  const initials = `${contact.firstName[0]}${contact.lastName[0]}`.toUpperCase();
 
   return (
     <div className="p-8 space-y-6 max-w-5xl">
-      {/* Header */}
+      {/* Header — matches company profile structure */}
       <div className="flex items-start justify-between">
-        <Link href="/crm/contacts" className="text-sm text-muted-foreground hover:text-foreground">
-          ← Contacts
-        </Link>
+        <div>
+          <Link href="/crm/contacts" className="text-sm text-muted-foreground hover:text-foreground">
+            ← Contacts
+          </Link>
+          <h1 className="text-2xl font-bold text-gray-900 mt-1">
+            {contact.firstName} {contact.lastName}
+          </h1>
+          {(contact.title || contact.department) && (
+            <p className="text-muted-foreground">
+              {[contact.title, contact.department].filter(Boolean).join(" · ")}
+            </p>
+          )}
+        </div>
         <ContactFormDialog contact={contact} companies={companies}>
           <button className="inline-flex items-center h-8 px-3 rounded-lg text-sm font-medium border border-border bg-background hover:bg-muted transition-all">
             Edit Contact
@@ -55,65 +52,59 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
         </ContactFormDialog>
       </div>
 
-      {/* Profile banner */}
-      <div className="flex items-center gap-5">
-        <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center text-xl font-bold text-blue-600 shrink-0 select-none">
-          {initials}
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            {contact.firstName} {contact.lastName}
-          </h1>
-          {(contact.title || contact.department) && (
-            <p className="text-sm text-muted-foreground mt-0.5">
-              {[contact.title, contact.department].filter(Boolean).join(" · ")}
-            </p>
-          )}
-          {contact.company && (
-            <Link
-              href={`/crm/companies/${contact.company.id}`}
-              className="text-sm text-blue-600 hover:underline mt-0.5 inline-block"
-            >
-              {contact.company.name}
-            </Link>
-          )}
-        </div>
-      </div>
+      {/* Stats — above grid, matching company profile placement */}
+      <Card>
+        <CardContent className="pt-5">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+              <ShoppingCart className="w-4 h-4 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">{totalOrders}</p>
+              <p className="text-xs text-muted-foreground">Total Orders</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left column */}
+        {/* Left sidebar */}
         <div className="lg:col-span-1 space-y-4">
-          {/* Personal Information */}
+          {/* Personal Information — icon-based rows, same style as company Details */}
           <Card>
             <CardHeader><CardTitle className="text-base">Personal Information</CardTitle></CardHeader>
-            <CardContent className="px-4 py-0 pb-1">
-              <Row label="First Name">{contact.firstName}</Row>
-              <Row label="Last Name">{contact.lastName}</Row>
-              <Row label="Email">
-                <a href={`mailto:${contact.email}`} className="text-blue-600 hover:underline break-all">
+            <CardContent className="space-y-3 text-sm">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Mail className="w-4 h-4 shrink-0" />
+                <a href={`mailto:${contact.email}`} className="hover:text-foreground truncate">
                   {contact.email}
                 </a>
-              </Row>
-              <Row label="Phone">
-                {contact.phone ?? <span className="text-muted-foreground">—</span>}
-              </Row>
-              <Row label="Title">
-                {contact.title ?? <span className="text-muted-foreground">—</span>}
-              </Row>
-              <Row label="Department">
-                {contact.department ?? <span className="text-muted-foreground">—</span>}
-              </Row>
+              </div>
+              {contact.phone && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Phone className="w-4 h-4 shrink-0" />
+                  {contact.phone}
+                </div>
+              )}
+              {(contact.title || contact.department) && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Briefcase className="w-4 h-4 shrink-0" />
+                  {[contact.title, contact.department].filter(Boolean).join(" · ")}
+                </div>
+              )}
               {contact.customerId && (
-                <Row label="Customer ID">
-                  <span className="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Hash className="w-4 h-4 shrink-0" />
+                  <span className="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded text-gray-900">
                     {contact.customerId}
                   </span>
-                </Row>
+                </div>
               )}
               {contact.notes && (
-                <Row label="Notes">
-                  <span className="text-muted-foreground">{contact.notes}</span>
-                </Row>
+                <div className="flex items-start gap-2 text-muted-foreground pt-2 border-t">
+                  <FileText className="w-4 h-4 shrink-0 mt-0.5" />
+                  <p>{contact.notes}</p>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -135,10 +126,7 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
             </CardHeader>
             <CardContent>
               {contact.company ? (
-                <Link
-                  href={`/crm/companies/${contact.company.id}`}
-                  className="group block"
-                >
+                <Link href={`/crm/companies/${contact.company.id}`} className="group block">
                   <p className="font-medium text-sm group-hover:text-blue-600 transition-colors">
                     {contact.company.name}
                   </p>
@@ -153,24 +141,8 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
           </Card>
         </div>
 
-        {/* Right column */}
-        <div className="lg:col-span-2 space-y-4">
-          {/* Stats */}
-          <Card>
-            <CardContent className="pt-5">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
-                  <ShoppingCart className="w-4 h-4 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-gray-900">{totalOrders}</p>
-                  <p className="text-xs text-muted-foreground">Total Orders</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Orders table */}
+        {/* Right — orders table */}
+        <div className="lg:col-span-2">
           <Card>
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">

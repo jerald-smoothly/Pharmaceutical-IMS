@@ -104,7 +104,7 @@ export default async function CompanyDetailPage({ params }: { params: Promise<{ 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1 space-y-4">
           <Card>
-            <CardHeader><CardTitle className="text-base">Details</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">Company Information</CardTitle></CardHeader>
             <CardContent className="space-y-3 text-sm">
               {company.email && (
                 <div className="flex items-center gap-2 text-muted-foreground">
