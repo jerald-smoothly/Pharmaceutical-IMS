@@ -61,14 +61,13 @@ function toTitleName(str: string) {
   return str.split(/(?<=[\s-])/).map((p) => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()).join("");
 }
 
-const inputClass = "w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder:text-gray-400";
+const inputClass = "w-full border border-[var(--rx-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-[var(--rx-text-strong)] placeholder:text-[var(--rx-text-muted)] bg-[var(--rx-surface)]";
 
-type Tab = "profile" | "password" | "api" | "appearance";
+type Tab = "profile" | "password" | "appearance";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "profile", label: "Profile" },
   { id: "password", label: "Change Password" },
-  { id: "api", label: "API" },
   { id: "appearance", label: "Appearance" },
 ];
 
@@ -216,15 +215,15 @@ export default function SettingsPanel() {
   return (
     <div>
       {/* ── Tab bar ── */}
-      <div className="flex gap-1 border-b mb-6">
+      <div className="flex gap-1 border-b border-[var(--rx-border)] mb-6">
         {TABS.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={`px-5 py-2.5 text-sm font-medium rounded-t-lg transition-colors -mb-px ${
               activeTab === tab.id
-                ? "bg-white border border-b-white border-gray-200 text-blue-600"
-                : "text-gray-500 hover:text-gray-800 hover:bg-gray-50"
+                ? "bg-[var(--rx-surface)] border border-b-[var(--rx-surface)] border-[var(--rx-border)] text-blue-600"
+                : "text-[var(--rx-text-muted)] hover:text-[var(--rx-text-strong)] hover:bg-[var(--rx-border-subtle)]"
             }`}
           >
             {tab.label}
@@ -243,9 +242,9 @@ export default function SettingsPanel() {
                 <form onSubmit={onSaveProfile} className="space-y-4">
                   {customerId && (
                     <div>
-                      <label className="text-sm font-medium text-gray-700 block mb-1">Customer ID</label>
+                      <label className="text-sm font-medium text-[var(--rx-text-body)] block mb-1">Customer ID</label>
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-sm bg-gray-50 border rounded-lg px-3 py-2 text-gray-700 select-all">
+                        <span className="font-mono text-sm bg-[var(--rx-border)] border border-[var(--rx-border)] rounded-lg px-3 py-2 text-[var(--rx-text-body)] select-all">
                           {customerId}
                         </span>
                         <span className="text-xs text-muted-foreground">Unique account identifier — never changes</span>
@@ -254,7 +253,7 @@ export default function SettingsPanel() {
                   )}
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-sm font-medium text-gray-700 block mb-1">First Name</label>
+                      <label className="text-sm font-medium text-[var(--rx-text-body)] block mb-1">First Name</label>
                       <input
                         type="text"
                         required
@@ -266,7 +265,7 @@ export default function SettingsPanel() {
                       />
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-700 block mb-1">Last Name</label>
+                      <label className="text-sm font-medium text-[var(--rx-text-body)] block mb-1">Last Name</label>
                       <input
                         type="text"
                         required
@@ -280,7 +279,7 @@ export default function SettingsPanel() {
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium text-gray-700 block mb-1">Email Address</label>
+                    <label className="text-sm font-medium text-[var(--rx-text-body)] block mb-1">Email Address</label>
                     <input
                       type="email"
                       required
@@ -292,12 +291,12 @@ export default function SettingsPanel() {
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium text-gray-700 block mb-1">Phone Number</label>
+                    <label className="text-sm font-medium text-[var(--rx-text-body)] block mb-1">Phone Number</label>
                     <div className="flex gap-2">
                       <select
                         value={country}
                         onChange={(e) => handleCountryChange(e.target.value as CountryCode)}
-                        className="border rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white w-48 shrink-0"
+                        className="border border-[var(--rx-border)] rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-[var(--rx-text-strong)] bg-[var(--rx-surface)] w-48 shrink-0"
                       >
                         <optgroup label="Common">
                           {priorityCountries.map((c) => (
@@ -326,7 +325,7 @@ export default function SettingsPanel() {
                     <button
                       type="submit"
                       disabled={profileSaving}
-                      className="px-5 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-all disabled:opacity-50"
+                      className="px-5 py-2 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-all disabled:opacity-50"
                     >
                       {profileSaving ? "Saving..." : "Update Profile"}
                     </button>
@@ -345,7 +344,7 @@ export default function SettingsPanel() {
             <CardContent className="p-6">
               <form onSubmit={onChangePassword} className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-700 block mb-1">Current Password</label>
+                  <label className="text-sm font-medium text-[var(--rx-text-body)] block mb-1">Current Password</label>
                   <input
                     name="currentPassword"
                     type="password"
@@ -356,7 +355,7 @@ export default function SettingsPanel() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-gray-700 block mb-1">New Password</label>
+                  <label className="text-sm font-medium text-[var(--rx-text-body)] block mb-1">New Password</label>
                   <input
                     ref={newPasswordRef}
                     name="newPassword"
@@ -373,7 +372,7 @@ export default function SettingsPanel() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-gray-700 block mb-1">Confirm Password</label>
+                  <label className="text-sm font-medium text-[var(--rx-text-body)] block mb-1">Confirm Password</label>
                   <input
                     ref={confirmPasswordRef}
                     name="confirmPassword"
@@ -397,7 +396,7 @@ export default function SettingsPanel() {
                   <button
                     type="submit"
                     disabled={passwordSaving}
-                    className="px-5 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-all disabled:opacity-50"
+                    className="px-5 py-2 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-all disabled:opacity-50"
                   >
                     {passwordSaving ? "Saving..." : "Change Password"}
                   </button>
@@ -408,16 +407,6 @@ export default function SettingsPanel() {
         </div>
       )}
 
-      {/* ── API tab ── */}
-      {activeTab === "api" && (
-        <iframe
-          src="/api-docs"
-          className="w-full rounded-lg border"
-          style={{ height: "calc(100vh - 220px)", minHeight: "600px" }}
-          title="API Documentation"
-        />
-      )}
-
       {/* ── Appearance tab ── */}
       {activeTab === "appearance" && (
         <div className="max-w-2xl">
@@ -425,7 +414,7 @@ export default function SettingsPanel() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-700">Dark Mode</p>
+                  <p className="text-sm font-medium text-[var(--rx-text-body)]">Dark Mode</p>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     Switch the interface to a dark colour scheme
                   </p>

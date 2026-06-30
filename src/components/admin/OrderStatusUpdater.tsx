@@ -22,11 +22,11 @@ const labels: Record<string, string> = {
 };
 
 const colors: Record<string, string> = {
-  CONFIRMED: "bg-blue-600 text-white hover:bg-blue-700",
-  PROCESSING: "bg-purple-600 text-white hover:bg-purple-700",
-  SHIPPED: "bg-indigo-600 text-white hover:bg-indigo-700",
-  DELIVERED: "bg-green-600 text-white hover:bg-green-700",
-  CANCELLED: "border border-red-300 text-red-600 hover:bg-red-50",
+  CONFIRMED: "bg-primary text-primary-foreground hover:bg-primary/90",
+  PROCESSING: "bg-purple-600 text-white hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-400",
+  SHIPPED: "bg-indigo-600 text-white hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-400",
+  DELIVERED: "bg-green-600 text-white hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-400",
+  CANCELLED: "border border-red-300 text-red-600 hover:bg-red-50 dark:border-red-500/40 dark:text-red-400 dark:hover:bg-red-500/10",
 };
 
 export default function OrderStatusUpdater({ orderId, currentStatus }: { orderId: string; currentStatus: string }) {

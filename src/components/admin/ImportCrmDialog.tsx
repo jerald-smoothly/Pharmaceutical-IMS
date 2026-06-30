@@ -150,7 +150,7 @@ export default function ImportCrmDialog({ entity, children }: Props) {
               <CardContent className="p-6">
                 <div
                   className={`border-2 border-dashed rounded-xl p-10 text-center transition-colors ${
-                    dragging ? "border-blue-400 bg-blue-50" : "border-gray-200 hover:border-gray-300"
+                    dragging ? "border-blue-400 bg-blue-50 dark:bg-[rgba(59,111,212,0.12)]" : "border-gray-200 hover:border-gray-300 dark:border-[var(--rx-border)] dark:hover:border-[var(--rx-sb-active-text)]"
                   }`}
                   onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
                   onDragLeave={() => setDragging(false)}

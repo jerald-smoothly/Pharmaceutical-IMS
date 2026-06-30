@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Upload, Package, Plus } from "lucide-react";
 import ProductFormDialog from "@/components/admin/ProductFormDialog";
-import ImportStockDialog from "@/components/admin/ImportStockDialog";
 import CopyEmbedButton from "@/components/admin/CopyEmbedButton";
 
 async function getProducts(search: string, page: number, expiry: string) {
@@ -91,12 +90,13 @@ export default async function InventoryPage({ searchParams }: Props) {
               New Product
             </button>
           </ProductFormDialog>
-          <ImportStockDialog>
-            <button className="inline-flex items-center gap-2 h-8 px-2.5 rounded-lg text-sm font-medium border border-border bg-background hover:bg-muted transition-all">
-              <Upload className="w-4 h-4" />
-              Import Stock
-            </button>
-          </ImportStockDialog>
+          <Link
+            href="/inventory/import"
+            className="inline-flex items-center gap-2 h-8 px-2.5 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-all"
+          >
+            <Upload className="w-4 h-4" />
+            Import Stock
+          </Link>
         </div>
       </div>
 

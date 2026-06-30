@@ -35,8 +35,8 @@ export default function AddToCartButton({ product }: { product: Product }) {
       onClick={handleAdd}
       className={`w-full h-8 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5 ${
         added
-          ? "bg-green-100 text-green-700"
-          : "bg-blue-600 text-white hover:bg-blue-700"
+          ? "bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400"
+          : "bg-primary text-primary-foreground hover:bg-primary/90"
       }`}
     >
       {added ? (

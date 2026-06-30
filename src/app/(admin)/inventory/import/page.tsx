@@ -43,7 +43,6 @@ export default async function ImportPage() {
                 <tr>
                   <th className="px-4 py-3 text-left font-medium text-gray-600">File</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-600">Status</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-600">Imported</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-600">Failed</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-600">Date</th>
                 </tr>
@@ -61,7 +60,6 @@ export default async function ImportPage() {
                           {badge.label}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-green-700">{job.importedRows}</td>
                       <td className="px-4 py-3 text-red-600">{job.failedRows}</td>
                       <td className="px-4 py-3 text-muted-foreground">
                         {job.createdAt.toLocaleDateString()}

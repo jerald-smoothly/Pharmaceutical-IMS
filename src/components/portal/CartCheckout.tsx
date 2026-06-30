@@ -92,7 +92,7 @@ export default function CartCheckout() {
           <button
             onClick={placeOrder}
             disabled={loading}
-            className="inline-flex items-center gap-2 h-10 px-6 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-all disabled:opacity-50"
+            className="inline-flex items-center gap-2 h-10 px-6 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-all disabled:opacity-50"
           >
             {loading ? "Placing Order..." : "Place Order"}
           </button>

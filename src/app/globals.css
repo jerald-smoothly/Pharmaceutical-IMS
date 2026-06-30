@@ -55,7 +55,7 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  --primary: oklch(0.52 0.165 257);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
@@ -128,3 +128,108 @@
     @apply font-sans;
   }
 }
+
+/* ── RxPharmas design tokens (light) ── */
+:root {
+  --rx-bg: #f5f6f8;
+  --rx-surface: #ffffff;
+  --rx-border: #ebedf0;
+  --rx-border-subtle: #f0f1f4;
+  --rx-text-strong: #0f1729;
+  --rx-text-body: #1a2030;
+  --rx-text-secondary: #6b7484;
+  --rx-text-muted: #8a93a3;
+  --rx-text-faint: #9aa3b2;
+  --rx-sb-bg: #ffffff;
+  --rx-sb-border: #eaecef;
+  --rx-sb-text: #525c6b;
+  --rx-sb-text-strong: #0f1729;
+  --rx-sb-text-muted: #8a93a3;
+  --rx-sb-hover: #f4f5f7;
+  --rx-sb-active-bg: #eef3fd;
+  --rx-sb-active-text: #3b6fd4;
+  --rx-sb-icon: #9aa3b2;
+  --rx-sb-section: #a3abba;
+}
+
+/* ── RxPharmas design tokens (dark) ── */
+.dark {
+  --rx-bg: #0d1117;
+  --rx-surface: #161b27;
+  --rx-border: #1e2638;
+  --rx-border-subtle: #19202e;
+  --rx-text-strong: #e8ecf4;
+  --rx-text-body: #cdd2e0;
+  --rx-text-secondary: #8a93a8;
+  --rx-text-muted: #5f6878;
+  --rx-text-faint: #485165;
+  --rx-sb-bg: #0c1122;
+  --rx-sb-border: rgba(255, 255, 255, 0.07);
+  --rx-sb-text: #8b97ab;
+  --rx-sb-text-strong: #e8ecf4;
+  --rx-sb-text-muted: #5f6878;
+  --rx-sb-hover: rgba(255, 255, 255, 0.05);
+  --rx-sb-active-bg: rgba(59, 111, 212, 0.2);
+  --rx-sb-active-text: #93b4f4;
+  --rx-sb-icon: #5a6880;
+  --rx-sb-section: #485165;
+  /* Fix primary button — keep brand blue in dark mode instead of near-white */
+  --primary: oklch(0.58 0.16 252);
+  --primary-foreground: oklch(0.985 0 0);
+}
+
+/* ── Dark mode overrides for Tailwind classes used across pages & components ── */
+
+/* Gray text */
+.dark .text-gray-900 { color: var(--rx-text-strong); }
+.dark .text-gray-700 { color: var(--rx-text-body); }
+.dark .text-gray-600 { color: var(--rx-text-secondary); }
+.dark .text-gray-500 { color: var(--rx-text-muted); }
+.dark .text-gray-400 { color: var(--rx-text-muted); }
+.dark .text-gray-300 { color: var(--rx-text-muted); }
+
+/* Hover text */
+.dark .hover\:text-gray-600:hover { color: var(--rx-text-secondary); }
+.dark .hover\:text-gray-800:hover { color: var(--rx-text-strong); }
+
+/* Gray backgrounds */
+.dark .bg-gray-50  { background-color: var(--rx-border); }
+.dark .bg-gray-100 { background-color: var(--rx-border); }
+.dark .bg-gray-200 { background-color: var(--rx-border-subtle); }
+.dark .hover\:bg-gray-50:hover { background-color: var(--rx-border-subtle); }
+
+/* Borders */
+.dark .border-gray-200 { border-color: var(--rx-border); }
+.dark .border-gray-300 { border-color: var(--rx-border); }
+
+/* Table dividers */
+.dark .divide-y > :not([hidden]) ~ :not([hidden]) { border-color: var(--rx-border); }
+
+/* Generic bordered containers */
+.dark .rounded-lg.border,
+.dark .border.rounded-lg { border-color: var(--rx-border); }
+
+/* Form inputs & selects without explicit bg */
+.dark select.bg-white,
+.dark input.border { background-color: var(--rx-surface); color: var(--rx-text-strong); border-color: var(--rx-border); }
+
+/* Semantic status backgrounds (import results, alerts) */
+.dark .bg-blue-50   { background-color: rgba(59, 111, 212, 0.12); }
+.dark .bg-green-50  { background-color: rgba(22, 163, 74, 0.12); }
+.dark .bg-red-50    { background-color: rgba(220, 38, 38, 0.12); }
+.dark .bg-amber-50  { background-color: rgba(245, 158, 11, 0.12); }
+.dark .bg-yellow-50 { background-color: rgba(234, 179, 8, 0.12); }
+
+/* Semantic border overrides */
+.dark .border-red-200   { border-color: rgba(220, 38, 38, 0.3); }
+.dark .border-green-200 { border-color: rgba(22, 163, 74, 0.3); }
+.dark .border-blue-200  { border-color: rgba(59, 111, 212, 0.3); }
+
+/* Semantic text — keep readable on dark backgrounds */
+.dark .text-green-700, .dark .text-green-600 { color: #4ade80; }
+.dark .text-red-700,   .dark .text-red-600   { color: #f87171; }
+.dark .text-amber-700, .dark .text-amber-600 { color: #fbbf24; }
+.dark .text-blue-600  { color: #93b4f4; }
+
+/* Code blocks */
+.dark code.bg-gray-100, .dark .bg-gray-100 code { background-color: var(--rx-border); color: var(--rx-text-body); }

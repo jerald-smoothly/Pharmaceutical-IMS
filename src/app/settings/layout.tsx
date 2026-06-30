@@ -9,7 +9,7 @@ export default async function SettingsLayout({ children }: { children: React.Rea
 
   if (["ADMIN", "STAFF"].includes(session.user.role)) {
     return (
-      <div className="flex h-screen bg-[#f5f6f8]">
+      <div className="flex h-screen bg-[var(--rx-bg)]">
         <AdminSidebar user={session.user} />
         <main className="flex-1 overflow-auto p-8">
           {children}

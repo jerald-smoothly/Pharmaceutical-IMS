@@ -69,7 +69,7 @@ export default async function CatalogPage({ searchParams }: Props) {
           placeholder="Search products, generic names, categories..."
           className="flex-1 border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
-        <button type="submit" className="inline-flex items-center h-9 px-4 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-all">
+        <button type="submit" className="inline-flex items-center h-9 px-4 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-all">
           Search
         </button>
       </form>

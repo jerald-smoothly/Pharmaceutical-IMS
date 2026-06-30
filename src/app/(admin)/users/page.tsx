@@ -19,21 +19,23 @@ interface User {
 }
 
 const statusBadge: Record<UserStatus, string> = {
-  PENDING: "bg-yellow-100 text-yellow-800",
-  ACTIVE: "bg-green-100 text-green-800",
-  SUSPENDED: "bg-red-100 text-red-800",
+  PENDING:   "bg-yellow-100 text-yellow-800 dark:bg-yellow-500/15 dark:text-yellow-400",
+  ACTIVE:    "bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400",
+  SUSPENDED: "bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400",
 };
 
 const roleBadge: Record<UserRole, string> = {
-  ADMIN: "bg-purple-100 text-purple-800",
-  STAFF: "bg-blue-100 text-blue-800",
-  CUSTOMER: "bg-gray-100 text-gray-700",
+  ADMIN:    "bg-purple-100 text-purple-800 dark:bg-purple-500/15 dark:text-purple-400",
+  STAFF:    "bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400",
+  CUSTOMER: "bg-gray-100 text-gray-700 dark:bg-gray-500/15 dark:text-gray-400",
 };
+
+const inputClass = "w-full border border-[var(--rx-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-[var(--rx-surface)] text-[var(--rx-text-strong)]";
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<"pending" | "all">("pending");
+  const [tab, setTab] = useState<"pending" | "all">("all");
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
   const [acting, setActing] = useState<string | null>(null);
@@ -86,54 +88,55 @@ export default function UsersPage() {
     (e.target as HTMLFormElement).reset();
   }
 
-  const pending = users.filter((u) => u.status === "PENDING");
-  const displayed = tab === "pending" ? pending : users;
+  const staffUsers = users.filter((u) => u.role !== "CUSTOMER");
+  const pending = staffUsers.filter((u) => u.status === "PENDING");
+  const displayed = tab === "pending" ? pending : staffUsers;
 
   return (
     <div className="p-8 space-y-6 max-w-5xl">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">Manage staff accounts and approve customer registrations</p>
+          <h1 className="text-2xl font-bold text-[var(--rx-text-strong)]">User Management</h1>
+          <p className="text-sm text-[var(--rx-text-secondary)] mt-0.5">Manage staff accounts and approve customer registrations</p>
         </div>
         <button
           onClick={() => setShowCreate(!showCreate)}
-          className="inline-flex items-center gap-2 h-9 px-4 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-all"
+          className="inline-flex items-center gap-2 h-9 px-4 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-all"
         >
           <UserPlus className="w-4 h-4" />
-          Add staff account
+          Add Staff Account
         </button>
       </div>
 
       {showCreate && (
         <Card>
-          <CardHeader><CardTitle className="text-base">Create staff account</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">Create Staff Account</CardTitle></CardHeader>
           <CardContent>
             <form onSubmit={createStaff} className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium text-gray-700 block mb-1">Full name</label>
-                <input name="name" required minLength={2} placeholder="Jane Smith" className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <label className="text-sm font-medium text-[var(--rx-text-body)] block mb-1">Full Name</label>
+                <input name="name" required minLength={2} placeholder="Jane Smith" className={inputClass} />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700 block mb-1">Email</label>
-                <input name="email" type="email" required placeholder="jane@yourcompany.com" className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <label className="text-sm font-medium text-[var(--rx-text-body)] block mb-1">Email</label>
+                <input name="email" type="email" required placeholder="jane@yourcompany.com" className={inputClass} />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700 block mb-1">Temporary password</label>
-                <input name="password" type="password" required minLength={8} placeholder="Min 8 characters" className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <label className="text-sm font-medium text-[var(--rx-text-body)] block mb-1">Temporary Password</label>
+                <input name="password" type="password" required minLength={8} placeholder="Min 8 characters" className={inputClass} />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700 block mb-1">Role</label>
-                <select name="role" className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <label className="text-sm font-medium text-[var(--rx-text-body)] block mb-1">Role</label>
+                <select name="role" className={inputClass}>
                   <option value="STAFF">Staff</option>
                   <option value="ADMIN">Admin</option>
                 </select>
               </div>
               <div className="col-span-2 flex gap-3">
-                <button type="submit" disabled={creating} className="h-9 px-4 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition-all">
-                  {creating ? "Creating..." : "Create account"}
+                <button type="submit" disabled={creating} className="h-9 px-4 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-all">
+                  {creating ? "Creating..." : "Create Account"}
                 </button>
-                <button type="button" onClick={() => setShowCreate(false)} className="h-9 px-4 rounded-lg text-sm font-medium border hover:bg-gray-50 transition-all">
+                <button type="button" onClick={() => setShowCreate(false)} className="h-9 px-4 rounded-lg text-sm font-medium border border-[var(--rx-border)] text-[var(--rx-text-body)] hover:bg-[var(--rx-border-subtle)] transition-all">
                   Cancel
                 </button>
               </div>
@@ -142,75 +145,75 @@ export default function UsersPage() {
         </Card>
       )}
 
-      <div className="flex gap-1 border-b">
-        <button
-          onClick={() => setTab("pending")}
-          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${tab === "pending" ? "border-blue-600 text-blue-700" : "border-transparent text-gray-500 hover:text-gray-700"}`}
-        >
-          Pending approval
-          {pending.length > 0 && (
-            <span className="ml-2 inline-flex items-center justify-center w-5 h-5 rounded-full bg-yellow-100 text-yellow-800 text-xs font-bold">{pending.length}</span>
-          )}
-        </button>
+      <div className="flex gap-1 border-b border-[var(--rx-border)]">
         <button
           onClick={() => setTab("all")}
-          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${tab === "all" ? "border-blue-600 text-blue-700" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${tab === "all" ? "border-blue-600 text-blue-600" : "border-transparent text-[var(--rx-text-muted)] hover:text-[var(--rx-text-strong)]"}`}
         >
-          All users
+          All Users
+        </button>
+        <button
+          onClick={() => setTab("pending")}
+          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${tab === "pending" ? "border-blue-600 text-blue-600" : "border-transparent text-[var(--rx-text-muted)] hover:text-[var(--rx-text-strong)]"}`}
+        >
+          Pending Approval
+          {pending.length > 0 && (
+            <span className="ml-2 inline-flex items-center justify-center w-5 h-5 rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-500/15 dark:text-yellow-400 text-xs font-bold">{pending.length}</span>
+          )}
         </button>
       </div>
 
       {loading ? (
-        <div className="text-center py-12 text-muted-foreground text-sm">Loading...</div>
+        <div className="text-center py-12 text-[var(--rx-text-muted)] text-sm">Loading...</div>
       ) : displayed.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground text-sm bg-white rounded-xl border">
+        <div className="text-center py-12 text-[var(--rx-text-muted)] text-sm bg-[var(--rx-surface)] rounded-xl border border-[var(--rx-border)]">
           {tab === "pending" ? "No pending registrations" : "No users found"}
         </div>
       ) : (
-        <div className="bg-white rounded-xl border overflow-hidden">
+        <div className="bg-[var(--rx-surface)] rounded-xl border border-[var(--rx-border)] overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="border-b bg-gray-50">
+            <thead className="border-b border-[var(--rx-border)] bg-[var(--rx-border-subtle)]">
               <tr>
-                <th className="px-4 py-3 text-left font-medium text-gray-600">User</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-600">Company</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-600">Role</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-600">Status</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-600">Registered</th>
-                <th className="px-4 py-3 text-right font-medium text-gray-600">Actions</th>
+                <th className="px-4 py-3 text-center font-medium text-[var(--rx-text-secondary)]">User</th>
+                <th className="px-4 py-3 text-center font-medium text-[var(--rx-text-secondary)]">Company</th>
+                <th className="px-4 py-3 text-center font-medium text-[var(--rx-text-secondary)]">Role</th>
+                <th className="px-4 py-3 text-center font-medium text-[var(--rx-text-secondary)]">Status</th>
+                <th className="px-4 py-3 text-center font-medium text-[var(--rx-text-secondary)]">Registered</th>
+                <th className="px-4 py-3 text-center font-medium text-[var(--rx-text-secondary)]">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y">
+            <tbody className="divide-y divide-[var(--rx-border)]">
               {displayed.map((u) => (
-                <tr key={u.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3">
-                    <p className="font-medium">{u.name ?? "—"}</p>
-                    <p className="text-xs text-muted-foreground">{u.email}</p>
+                <tr key={u.id} className="hover:bg-[var(--rx-border-subtle)] transition-colors">
+                  <td className="px-4 py-3 text-center">
+                    <p className="font-medium text-[var(--rx-text-body)]">{u.name ?? "—"}</p>
+                    <p className="text-xs text-[var(--rx-text-muted)]">{u.email}</p>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 text-center">
                     {u.contact?.company ? (
-                      <span className="inline-flex items-center gap-1 text-xs text-gray-600">
+                      <span className="inline-flex items-center justify-center gap-1 text-xs text-[var(--rx-text-secondary)]">
                         <Building2 className="w-3 h-3" /> {u.contact.company.name}
                       </span>
                     ) : (
-                      <span className="text-xs text-muted-foreground">—</span>
+                      <span className="text-xs text-[var(--rx-text-muted)]">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 text-center">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${roleBadge[u.role]}`}>{u.role}</span>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 text-center">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusBadge[u.status]}`}>{u.status}</span>
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground">
+                  <td className="px-4 py-3 text-center text-[var(--rx-text-muted)]">
                     {new Date(u.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center justify-end gap-2">
+                    <div className="flex items-center justify-center gap-2">
                       {u.status === "PENDING" && (
                         <button
                           onClick={() => updateStatus(u.id, "ACTIVE")}
                           disabled={acting === u.id}
-                          className="inline-flex items-center gap-1 h-7 px-3 rounded-lg text-xs font-medium bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 transition-all"
+                          className="inline-flex items-center gap-1 h-7 px-3 rounded-lg text-xs font-medium bg-green-600 text-white hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-400 disabled:opacity-50 transition-all"
                         >
                           <CheckCircle className="w-3 h-3" /> Approve
                         </button>
@@ -219,7 +222,7 @@ export default function UsersPage() {
                         <button
                           onClick={() => updateStatus(u.id, "SUSPENDED")}
                           disabled={acting === u.id}
-                          className="inline-flex items-center gap-1 h-7 px-3 rounded-lg text-xs font-medium border border-red-300 text-red-600 hover:bg-red-50 disabled:opacity-50 transition-all"
+                          className="inline-flex items-center gap-1 h-7 px-3 rounded-lg text-xs font-medium border border-red-300 text-red-600 hover:bg-red-50 dark:border-red-500/40 dark:text-red-400 dark:hover:bg-red-500/10 disabled:opacity-50 transition-all"
                         >
                           <Ban className="w-3 h-3" /> Suspend
                         </button>
@@ -228,7 +231,7 @@ export default function UsersPage() {
                         <button
                           onClick={() => updateStatus(u.id, "ACTIVE")}
                           disabled={acting === u.id}
-                          className="inline-flex items-center gap-1 h-7 px-3 rounded-lg text-xs font-medium border text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-all"
+                          className="inline-flex items-center gap-1 h-7 px-3 rounded-lg text-xs font-medium border border-[var(--rx-border)] text-[var(--rx-text-body)] hover:bg-[var(--rx-border-subtle)] disabled:opacity-50 transition-all"
                         >
                           <RefreshCw className="w-3 h-3" /> Reactivate
                         </button>

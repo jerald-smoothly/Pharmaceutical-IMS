@@ -17,7 +17,7 @@ export default function CopyEmbedButton() {
   return (
     <button
       onClick={copy}
-      className="inline-flex items-center gap-2 h-8 px-2.5 rounded-lg text-sm font-medium border border-border bg-background hover:bg-muted transition-all"
+      className="inline-flex items-center gap-2 h-8 px-2.5 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-all"
     >
       {copied ? (
         <>

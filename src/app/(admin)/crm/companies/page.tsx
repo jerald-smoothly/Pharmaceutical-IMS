@@ -50,7 +50,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
         </div>
         <div className="flex items-center gap-2">
           <ImportCrmDialog entity="companies">
-            <button className="inline-flex items-center gap-2 h-8 px-3 rounded-lg text-sm font-medium border border-border bg-background hover:bg-muted transition-all">
+            <button className="inline-flex items-center gap-2 h-8 px-3 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-all">
               <Upload className="w-4 h-4" />
               Import Companies
             </button>

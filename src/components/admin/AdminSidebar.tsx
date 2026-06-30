@@ -95,15 +95,15 @@ export default function AdminSidebar({ user }: Props) {
   }
 
   return (
-    <aside className="w-64 shrink-0 bg-white border-r border-[#eaecef] flex flex-col h-full">
+    <aside className="w-64 shrink-0 bg-[var(--rx-sb-bg)] border-r border-[var(--rx-sb-border)] flex flex-col h-full">
       {/* Logo */}
-      <div className="px-5 py-[22px] flex items-center gap-[11px] border-b border-[#eaecef]">
+      <div className="px-5 py-[22px] flex items-center gap-[11px] border-b border-[var(--rx-sb-border)]">
         <div className="w-[38px] h-[38px] rounded-[11px] bg-[#3b6fd4] flex items-center justify-center shadow-[0_4px_12px_-3px_rgba(59,111,212,0.55)]">
           <span className="font-mono font-semibold text-[15px] text-white tracking-tight">Rx</span>
         </div>
         <div className="leading-tight">
-          <div className="font-semibold text-[15px] text-[#0f1729] tracking-tight">RxPharmas</div>
-          <div className="text-[11.5px] text-[#8a93a3] font-medium">
+          <div className="font-semibold text-[15px] text-[var(--rx-sb-text-strong)] tracking-tight">RxPharmas</div>
+          <div className="text-[11.5px] text-[var(--rx-sb-text-muted)] font-medium">
             Inventory · {isAdmin ? "Admin" : "Staff"}
           </div>
         </div>
@@ -111,7 +111,7 @@ export default function AdminSidebar({ user }: Props) {
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-[14px] flex flex-col gap-0.5 overflow-y-auto">
-        <div className="px-3 py-1.5 text-[10.5px] font-semibold tracking-[0.7px] uppercase text-[#a3abba] mb-1">
+        <div className="px-3 py-1.5 text-[10.5px] font-semibold tracking-[0.7px] uppercase text-[var(--rx-sb-section)] mb-1">
           Workspace
         </div>
 
@@ -124,11 +124,11 @@ export default function AdminSidebar({ user }: Props) {
               className={cn(
                 "flex items-center gap-[11px] px-3 py-[9px] rounded-[9px] text-[13.5px] font-medium transition-colors",
                 active
-                  ? "bg-[#eef3fd] text-[#3b6fd4] font-semibold"
-                  : "text-[#525c6b] hover:bg-[#f4f5f7]"
+                  ? "bg-[var(--rx-sb-active-bg)] text-[var(--rx-sb-active-text)] font-semibold"
+                  : "text-[var(--rx-sb-text)] hover:bg-[var(--rx-sb-hover)]"
               )}
             >
-              <span className={active ? "text-[#3b6fd4]" : "text-[#9aa3b2]"}>
+              <span className={active ? "text-[var(--rx-sb-active-text)]" : "text-[var(--rx-sb-icon)]"}>
                 {icon}
               </span>
               {label}
@@ -136,7 +136,7 @@ export default function AdminSidebar({ user }: Props) {
           );
         })}
 
-        <div className="px-3 pt-4 pb-2 text-[10.5px] font-semibold tracking-[0.7px] uppercase text-[#a3abba] mt-1">
+        <div className="px-3 pt-4 pb-2 text-[10.5px] font-semibold tracking-[0.7px] uppercase text-[var(--rx-sb-section)] mt-1">
           Administration
         </div>
 
@@ -151,11 +151,11 @@ export default function AdminSidebar({ user }: Props) {
                 className={cn(
                   "flex items-center gap-[11px] px-3 py-[9px] rounded-[9px] text-[13.5px] font-medium transition-colors",
                   active
-                    ? "bg-[#eef3fd] text-[#3b6fd4] font-semibold"
-                    : "text-[#525c6b] hover:bg-[#f4f5f7]"
+                    ? "bg-[var(--rx-sb-active-bg)] text-[var(--rx-sb-active-text)] font-semibold"
+                    : "text-[var(--rx-sb-text)] hover:bg-[var(--rx-sb-hover)]"
                 )}
               >
-                <span className={active ? "text-[#3b6fd4]" : "text-[#9aa3b2]"}>
+                <span className={active ? "text-[var(--rx-sb-active-text)]" : "text-[var(--rx-sb-icon)]"}>
                   {icon}
                 </span>
                 {label}
@@ -165,23 +165,25 @@ export default function AdminSidebar({ user }: Props) {
       </nav>
 
       {/* User footer */}
-      <div className="px-3 pb-4 pt-3 border-t border-[#eaecef]">
+      <div className="px-3 pb-4 pt-3 border-t border-[var(--rx-sb-border)]">
         <div className="flex items-center gap-[10px] px-1.5 py-1.5 pb-2.5">
-          <div className="w-[34px] h-[34px] rounded-full bg-[#dde8fa] flex items-center justify-center text-[12.5px] font-semibold text-[#3b6fd4] shrink-0">
+          <div className="w-[34px] h-[34px] rounded-full bg-[var(--rx-sb-active-bg)] flex items-center justify-center text-[12.5px] font-semibold text-[var(--rx-sb-active-text)] shrink-0">
             {initials}
           </div>
           <div className="min-w-0">
-            <div className="text-[13px] font-semibold text-[#1a2030] truncate">{user.name ?? user.email}</div>
-            <div className="text-[11.5px] text-[#8a93a3] truncate">{user.email}</div>
+            <div className="text-[13px] font-semibold text-[var(--rx-sb-text-strong)] truncate">{user.name ?? user.email}</div>
+            <div className="text-[11.5px] text-[var(--rx-sb-text-muted)] truncate">{user.email}</div>
           </div>
         </div>
         <button
           onClick={() => signOut({ callbackUrl: "/login" })}
-          className="w-full flex items-center gap-[10px] px-3 py-[9px] rounded-[9px] text-[13px] font-medium text-[#525c6b] hover:bg-[#f4f5f7] transition-colors"
+          className="w-full flex items-center gap-[10px] px-3 py-[9px] rounded-[9px] text-[13px] font-medium text-[var(--rx-sb-text)] hover:bg-[var(--rx-sb-hover)] transition-colors"
         >
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#9aa3b2" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
-          </svg>
+          <span className="text-[var(--rx-sb-icon)]" style={{ lineHeight: 0 }}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
+            </svg>
+          </span>
           Sign out
         </button>
       </div>
