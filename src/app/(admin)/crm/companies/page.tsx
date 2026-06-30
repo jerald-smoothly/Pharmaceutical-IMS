@@ -3,6 +3,7 @@ import { Building2, Plus, Upload, Users, ShoppingCart, ChevronUp, ChevronDown, C
 import Link from "next/link";
 import CompanyFormDialog from "@/components/admin/CompanyFormDialog";
 import ImportCrmDialog from "@/components/admin/ImportCrmDialog";
+import SearchInput from "@/components/shared/SearchInput";
 
 type Dir = "asc" | "desc";
 
@@ -103,20 +104,11 @@ export default async function CompaniesPage({ searchParams }: Props) {
         </div>
       </div>
 
-      <form className="flex gap-3">
-        <input
-          name="search"
-          defaultValue={search}
-          placeholder="Search by name, email, or city..."
-          className="flex-1 border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <button
-          type="submit"
-          className="inline-flex items-center h-9 px-4 rounded-lg text-sm font-medium border border-border bg-background hover:bg-muted transition-all"
-        >
-          Search
-        </button>
-      </form>
+      <SearchInput
+        placeholder="Search by name, email, or city..."
+        defaultValue={search}
+        preserveParams={{ sort, dir }}
+      />
 
       {companies.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">

@@ -3,6 +3,7 @@ import { Users, Plus, Upload, ChevronUp, ChevronDown, ChevronsUpDown } from "luc
 import Link from "next/link";
 import ContactFormDialog from "@/components/admin/ContactFormDialog";
 import ImportCrmDialog from "@/components/admin/ImportCrmDialog";
+import SearchInput from "@/components/shared/SearchInput";
 
 type Dir = "asc" | "desc";
 
@@ -43,13 +44,17 @@ async function getContacts(search: string, page: number, sort: string, dir: Dir)
   const limit = 20;
   await syncEmployeeContacts();
 
-  const searchFilter = search
+  // Split multi-word queries so "Jane Buyer" matches firstName="Jane" AND lastName="Buyer"
+  const words = search.trim().split(/\s+/).filter(Boolean);
+  const searchFilter = words.length
     ? {
-        OR: [
-          { firstName: { contains: search, mode: "insensitive" as const } },
-          { lastName: { contains: search, mode: "insensitive" as const } },
-          { email: { contains: search, mode: "insensitive" as const } },
-        ],
+        AND: words.map((word) => ({
+          OR: [
+            { firstName: { contains: word, mode: "insensitive" as const } },
+            { lastName: { contains: word, mode: "insensitive" as const } },
+            { email: { contains: word, mode: "insensitive" as const } },
+          ],
+        })),
       }
     : null;
 
@@ -136,17 +141,11 @@ export default async function ContactsPage({ searchParams }: Props) {
         </div>
       </div>
 
-      <form className="flex gap-3">
-        <input
-          name="search"
-          defaultValue={search}
-          placeholder="Search by name or email..."
-          className="flex-1 border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <button type="submit" className="inline-flex items-center h-9 px-4 rounded-lg text-sm font-medium border border-border bg-background hover:bg-muted transition-all">
-          Search
-        </button>
-      </form>
+      <SearchInput
+        placeholder="Search by name or email..."
+        defaultValue={search}
+        preserveParams={{ sort, dir }}
+      />
 
       {contacts.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">

@@ -6,6 +6,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Upload, Package, Plus } from "lucide-react";
 import ProductFormDialog from "@/components/admin/ProductFormDialog";
 import CopyEmbedButton from "@/components/admin/CopyEmbedButton";
+import SearchInput from "@/components/shared/SearchInput";
+import NavSelect from "@/components/shared/NavSelect";
 
 async function getProducts(search: string, page: number, expiry: string) {
   const limit = 25;
@@ -114,16 +116,17 @@ export default async function InventoryPage({ searchParams }: Props) {
         </Card>
       </div>
 
-      <form className="flex gap-3 flex-wrap">
-        <input
-          name="search"
-          defaultValue={search}
+      <div className="flex gap-3 flex-wrap">
+        <SearchInput
           placeholder="Search by name, SKU, or generic name..."
+          defaultValue={search}
+          preserveParams={{ expiry }}
           className="flex-1 min-w-48 border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
-        <select
+        <NavSelect
           name="expiry"
           defaultValue={expiry}
+          preserveParams={{ search }}
           className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
         >
           <option value="">All Expiry Dates</option>
@@ -131,9 +134,8 @@ export default async function InventoryPage({ searchParams }: Props) {
           <option value="60">Expiring in 60 days</option>
           <option value="90">Expiring in 90 days</option>
           <option value="expired">Already Expired</option>
-        </select>
-        <Button type="submit" variant="outline">Search</Button>
-      </form>
+        </NavSelect>
+      </div>
 
       {products.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
