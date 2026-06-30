@@ -1,10 +1,21 @@
 import { prisma } from "@/lib/db";
-import { Building2, Plus, Upload, Users, ShoppingCart } from "lucide-react";
+import { Building2, Plus, Upload, Users, ShoppingCart, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 import Link from "next/link";
 import CompanyFormDialog from "@/components/admin/CompanyFormDialog";
 import ImportCrmDialog from "@/components/admin/ImportCrmDialog";
 
-async function getCompanies(search: string, page: number) {
+type Dir = "asc" | "desc";
+
+function buildOrderBy(sort: string, dir: Dir) {
+  switch (sort) {
+    case "location": return [{ city: dir }];
+    case "contacts": return [{ contacts: { _count: dir } }];
+    case "orders":   return [{ orders: { _count: dir } }];
+    default:         return [{ name: dir }];
+  }
+}
+
+async function getCompanies(search: string, page: number, sort: string, dir: Dir) {
   const limit = 20;
   const where = search
     ? {
@@ -21,7 +32,8 @@ async function getCompanies(search: string, page: number) {
     prisma.company.findMany({
       where,
       include: { _count: { select: { contacts: true, orders: true } } },
-      orderBy: { name: "asc" },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      orderBy: buildOrderBy(sort, dir) as any,
       skip: (page - 1) * limit,
       take: limit,
     }),
@@ -31,15 +43,42 @@ async function getCompanies(search: string, page: number) {
   return { companies, total, pages: Math.ceil(total / limit) };
 }
 
+function SortHeader({
+  label, col, sort, dir, search, page,
+}: {
+  label: string; col: string; sort: string; dir: Dir; search: string; page: number;
+}) {
+  const isActive = sort === col;
+  const nextDir: Dir = isActive && dir === "asc" ? "desc" : "asc";
+  const Icon = isActive ? (dir === "asc" ? ChevronUp : ChevronDown) : ChevronsUpDown;
+  return (
+    <th className="px-4 py-3 text-left">
+      <Link
+        href={`?sort=${col}&dir=${nextDir}&search=${encodeURIComponent(search)}&page=1`}
+        className={`inline-flex items-center gap-1 text-sm font-medium select-none transition-colors ${
+          isActive ? "text-gray-900" : "text-gray-600 hover:text-gray-900"
+        }`}
+      >
+        {label}
+        <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? "text-blue-600" : "text-gray-400"}`} />
+      </Link>
+    </th>
+  );
+}
+
 interface Props {
-  searchParams: Promise<{ search?: string; page?: string }>;
+  searchParams: Promise<{ search?: string; page?: string; sort?: string; dir?: string }>;
 }
 
 export default async function CompaniesPage({ searchParams }: Props) {
   const params = await searchParams;
   const search = params.search ?? "";
   const page = parseInt(params.page ?? "1");
-  const { companies, total, pages } = await getCompanies(search, page);
+  const sort = params.sort ?? "name";
+  const dir: Dir = params.dir === "desc" ? "desc" : "asc";
+  const { companies, total, pages } = await getCompanies(search, page, sort, dir);
+
+  const shProps = { sort, dir, search, page };
 
   return (
     <div className="p-8 space-y-6">
@@ -90,10 +129,10 @@ export default async function CompaniesPage({ searchParams }: Props) {
           <table className="w-full text-sm">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-3 text-left font-medium text-gray-600">Company</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-600">Location</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-600">Contacts</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-600">Orders</th>
+                <SortHeader label="Company"  col="name"     {...shProps} />
+                <SortHeader label="Location" col="location" {...shProps} />
+                <SortHeader label="Contacts" col="contacts" {...shProps} />
+                <SortHeader label="Orders"   col="orders"   {...shProps} />
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -132,12 +171,12 @@ export default async function CompaniesPage({ searchParams }: Props) {
           <span className="text-muted-foreground">Page {page} of {pages}</span>
           <div className="flex gap-2">
             {page > 1 && (
-              <Link href={`?page=${page - 1}&search=${search}`} className="inline-flex items-center h-7 px-3 rounded-lg text-sm font-medium border border-border bg-background hover:bg-muted transition-all">
+              <Link href={`?page=${page - 1}&search=${search}&sort=${sort}&dir=${dir}`} className="inline-flex items-center h-7 px-3 rounded-lg text-sm font-medium border border-border bg-background hover:bg-muted transition-all">
                 Previous
               </Link>
             )}
             {page < pages && (
-              <Link href={`?page=${page + 1}&search=${search}`} className="inline-flex items-center h-7 px-3 rounded-lg text-sm font-medium border border-border bg-background hover:bg-muted transition-all">
+              <Link href={`?page=${page + 1}&search=${search}&sort=${sort}&dir=${dir}`} className="inline-flex items-center h-7 px-3 rounded-lg text-sm font-medium border border-border bg-background hover:bg-muted transition-all">
                 Next
               </Link>
             )}

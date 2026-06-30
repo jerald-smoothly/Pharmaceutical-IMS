@@ -1,8 +1,10 @@
 import { prisma } from "@/lib/db";
-import { Users, Plus, Upload } from "lucide-react";
+import { Users, Plus, Upload, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 import Link from "next/link";
 import ContactFormDialog from "@/components/admin/ContactFormDialog";
 import ImportCrmDialog from "@/components/admin/ImportCrmDialog";
+
+type Dir = "asc" | "desc";
 
 async function syncEmployeeContacts() {
   const usersWithoutContacts = await prisma.user.findMany({
@@ -27,10 +29,18 @@ async function syncEmployeeContacts() {
   );
 }
 
-async function getContacts(search: string, page: number) {
-  const limit = 20;
+function buildOrderBy(sort: string, dir: Dir) {
+  switch (sort) {
+    case "company": return [{ company: { name: dir } }];
+    case "title":   return [{ title: dir }];
+    case "email":   return [{ email: dir }];
+    case "phone":   return [{ phone: dir }];
+    default:        return [{ firstName: dir }, { lastName: dir }];
+  }
+}
 
-  // Backfill Contact records for any active users that don't have one yet
+async function getContacts(search: string, page: number, sort: string, dir: Dir) {
+  const limit = 20;
   await syncEmployeeContacts();
 
   const searchFilter = search
@@ -43,7 +53,6 @@ async function getContacts(search: string, page: number) {
       }
     : null;
 
-  // Show active contacts AND contacts belonging to active user accounts (employees)
   const where = {
     AND: [
       { OR: [{ isActive: true }, { user: { status: "ACTIVE" } }] },
@@ -55,7 +64,8 @@ async function getContacts(search: string, page: number) {
     prisma.contact.findMany({
       where,
       include: { company: { select: { id: true, name: true } } },
-      orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      orderBy: buildOrderBy(sort, dir) as any,
       skip: (page - 1) * limit,
       take: limit,
     }),
@@ -66,15 +76,42 @@ async function getContacts(search: string, page: number) {
   return { contacts, total, pages: Math.ceil(total / limit), companies };
 }
 
+function SortHeader({
+  label, col, sort, dir, search, page,
+}: {
+  label: string; col: string; sort: string; dir: Dir; search: string; page: number;
+}) {
+  const isActive = sort === col;
+  const nextDir: Dir = isActive && dir === "asc" ? "desc" : "asc";
+  const Icon = isActive ? (dir === "asc" ? ChevronUp : ChevronDown) : ChevronsUpDown;
+  return (
+    <th className="px-4 py-3 text-left">
+      <Link
+        href={`?sort=${col}&dir=${nextDir}&search=${encodeURIComponent(search)}&page=1`}
+        className={`inline-flex items-center gap-1 text-sm font-medium select-none transition-colors ${
+          isActive ? "text-gray-900" : "text-gray-600 hover:text-gray-900"
+        }`}
+      >
+        {label}
+        <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? "text-blue-600" : "text-gray-400"}`} />
+      </Link>
+    </th>
+  );
+}
+
 interface Props {
-  searchParams: Promise<{ search?: string; page?: string }>;
+  searchParams: Promise<{ search?: string; page?: string; sort?: string; dir?: string }>;
 }
 
 export default async function ContactsPage({ searchParams }: Props) {
   const params = await searchParams;
   const search = params.search ?? "";
   const page = parseInt(params.page ?? "1");
-  const { contacts, total, pages, companies } = await getContacts(search, page);
+  const sort = params.sort ?? "name";
+  const dir: Dir = params.dir === "desc" ? "desc" : "asc";
+  const { contacts, total, pages, companies } = await getContacts(search, page, sort, dir);
+
+  const shProps = { sort, dir, search, page };
 
   return (
     <div className="p-8 space-y-6">
@@ -122,11 +159,11 @@ export default async function ContactsPage({ searchParams }: Props) {
           <table className="w-full text-sm">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-3 text-left font-medium text-gray-600">Name</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-600">Company</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-600">Title</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-600">Email</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-600">Phone</th>
+                <SortHeader label="Name"    col="name"    {...shProps} />
+                <SortHeader label="Company" col="company" {...shProps} />
+                <SortHeader label="Title"   col="title"   {...shProps} />
+                <SortHeader label="Email"   col="email"   {...shProps} />
+                <SortHeader label="Phone"   col="phone"   {...shProps} />
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -163,10 +200,10 @@ export default async function ContactsPage({ searchParams }: Props) {
           <span className="text-muted-foreground">Page {page} of {pages}</span>
           <div className="flex gap-2">
             {page > 1 && (
-              <Link href={`?page=${page - 1}&search=${search}`} className="inline-flex items-center h-7 px-3 rounded-lg text-sm font-medium border border-border bg-background hover:bg-muted transition-all">Previous</Link>
+              <Link href={`?page=${page - 1}&search=${search}&sort=${sort}&dir=${dir}`} className="inline-flex items-center h-7 px-3 rounded-lg text-sm font-medium border border-border bg-background hover:bg-muted transition-all">Previous</Link>
             )}
             {page < pages && (
-              <Link href={`?page=${page + 1}&search=${search}`} className="inline-flex items-center h-7 px-3 rounded-lg text-sm font-medium border border-border bg-background hover:bg-muted transition-all">Next</Link>
+              <Link href={`?page=${page + 1}&search=${search}&sort=${sort}&dir=${dir}`} className="inline-flex items-center h-7 px-3 rounded-lg text-sm font-medium border border-border bg-background hover:bg-muted transition-all">Next</Link>
             )}
           </div>
         </div>
