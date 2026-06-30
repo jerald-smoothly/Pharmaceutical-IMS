@@ -88,7 +88,19 @@ export async function GET(req: NextRequest) {
     prisma.importJob.count(),
   ]);
 
-  return NextResponse.json({ jobs, total, page, pages: Math.ceil(total / limit) });
+  const userIds = [...new Set(jobs.map((j) => j.createdById).filter(Boolean))] as string[];
+  const users = await prisma.user.findMany({
+    where: { id: { in: userIds } },
+    select: { id: true, name: true, email: true },
+  });
+  const userMap = Object.fromEntries(users.map((u) => [u.id, u]));
+
+  const enriched = jobs.map((j) => ({
+    ...j,
+    createdBy: j.createdById ? (userMap[j.createdById] ?? null) : null,
+  }));
+
+  return NextResponse.json({ jobs: enriched, total, page, pages: Math.ceil(total / limit) });
 }
 
 function mapRows(raw: Record<string, string>[]): ImportRow[] {

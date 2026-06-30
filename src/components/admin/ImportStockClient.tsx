@@ -15,7 +15,11 @@ interface ImportResult {
   errors: { row: number; message: string }[];
 }
 
-export default function ImportStockClient() {
+interface Props {
+  onImportComplete?: () => void;
+}
+
+export default function ImportStockClient({ onImportComplete }: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -72,6 +76,7 @@ export default function ImportStockClient() {
       } else {
         toast.error(`Import failed. All ${data.failedRows} rows had errors.`);
       }
+      onImportComplete?.();
     } catch {
       toast.error("Network error. Please try again.");
     } finally {
