@@ -120,9 +120,7 @@ export default function CompanyFormDialog({ children, company }: Props) {
   const [selectedState, setSelectedState]     = useState("");   // isoCode e.g. "CA"
   const [selectedCity, setSelectedCity]       = useState("");   // name e.g. "Los Angeles"
 
-  // Postal code (controlled for auto-population)
   const [postalCode, setPostalCode] = useState(company?.postalCode ?? "");
-  const [postalCodeLoading, setPostalCodeLoading] = useState(false);
 
   // Derived lists
   const stateOptions = selectedCountry ? State.getStatesOfCountry(selectedCountry) : [];
@@ -190,40 +188,15 @@ export default function CompanyFormDialog({ children, company }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  // Auto-populate postal code when city is selected
-  useEffect(() => {
-    if (!selectedCity || !selectedCountry) return;
-    setPostalCodeLoading(true);
-    const countryName = allCountries.find((c) => c.isoCode === selectedCountry)?.name ?? "";
-    const stateName = selectedState
-      ? State.getStatesOfCountry(selectedCountry).find((s) => s.isoCode === selectedState)?.name ?? ""
-      : "";
-    const q = [selectedCity, stateName, countryName].filter(Boolean).join(", ");
-    fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1&addressdetails=1`,
-      { headers: { "Accept-Language": "en" } }
-    )
-      .then((r) => r.json())
-      .then((data: Array<{ address?: { postcode?: string } }>) => {
-        const postcode = data[0]?.address?.postcode;
-        if (postcode) setPostalCode(postcode);
-      })
-      .catch(() => {})
-      .finally(() => setPostalCodeLoading(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCity]);
-
   function handleCountryChange(isoCode: string) {
     setSelectedCountry(isoCode);
     setSelectedState("");
     setSelectedCity("");
-    setPostalCode("");
   }
 
   function handleStateChange(stateCode: string) {
     setSelectedState(stateCode);
     setSelectedCity("");
-    setPostalCode("");
   }
 
   function handlePhoneChange(value: string) {
@@ -466,15 +439,13 @@ export default function CompanyFormDialog({ children, company }: Props) {
 
               {/* Postal Code */}
               <div>
-                <label className="text-sm font-medium text-gray-700 block mb-1">
-                  Postal Code {postalCodeLoading && <span className="text-xs font-normal text-[var(--rx-text-muted)]">— looking up…</span>}
-                </label>
+                <label className="text-sm font-medium text-gray-700 block mb-1">Postal Code</label>
                 <input
                   name="postalCode"
                   value={postalCode}
                   onChange={(e) => setPostalCode(e.target.value)}
                   placeholder="10001"
-                  className={`${inputClass}${postalCodeLoading ? " opacity-60" : ""}`}
+                  className={inputClass}
                 />
               </div>
 
