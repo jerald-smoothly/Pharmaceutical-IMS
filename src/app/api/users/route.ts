@@ -27,7 +27,8 @@ export async function GET() {
 }
 
 const createSchema = z.object({
-  name: z.string().min(2),
+  firstName: z.string().min(1).regex(/^[A-Za-z]+$/),
+  lastName: z.string().min(1).regex(/^[A-Za-z][A-Za-z\s-]*$/),
   email: z.string().email(),
   password: z.string().min(8),
   role: z.enum(["STAFF", "ADMIN"]),
@@ -45,7 +46,8 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: "Invalid input" }, { status: 400 });
   }
 
-  const { name, email, password, role } = parsed.data;
+  const { firstName, lastName, email, password, role } = parsed.data;
+  const name = `${firstName} ${lastName}`;
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
@@ -54,7 +56,14 @@ export async function POST(req: NextRequest) {
 
   const passwordHash = await bcrypt.hash(password, 12);
   const user = await prisma.user.create({
-    data: { name, email, passwordHash, role, status: "ACTIVE" },
+    data: {
+      name,
+      email,
+      passwordHash,
+      role,
+      status: "ACTIVE",
+      contact: { create: { firstName, lastName, email } },
+    },
     select: { id: true, name: true, email: true, role: true, status: true, createdAt: true },
   });
 

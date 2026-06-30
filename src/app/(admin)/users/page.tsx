@@ -69,7 +69,8 @@ export default function UsersPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        name: fd.get("name"),
+        firstName: fd.get("firstName"),
+        lastName: fd.get("lastName"),
         email: fd.get("email"),
         password: fd.get("password"),
         role: fd.get("role"),
@@ -111,12 +112,38 @@ export default function UsersPage() {
           <CardContent>
             <form onSubmit={createStaff} className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium text-[var(--rx-text-body)] block mb-1">Full Name</label>
-                <input name="name" required minLength={2} placeholder="Jane Smith" className={inputClass} />
+                <label className="text-sm font-medium text-[var(--rx-text-body)] block mb-1">First Name</label>
+                <input
+                  name="firstName"
+                  required
+                  minLength={1}
+                  placeholder="John"
+                  className={inputClass}
+                  onChange={(e) => { e.target.value = e.target.value.replace(/[^A-Za-z]/g, ""); }}
+                  onBlur={(e) => {
+                    const v = e.target.value.trim();
+                    if (v) e.target.value = v.charAt(0).toUpperCase() + v.slice(1).toLowerCase();
+                  }}
+                />
               </div>
               <div>
-                <label className="text-sm font-medium text-[var(--rx-text-body)] block mb-1">Email</label>
-                <input name="email" type="email" required placeholder="jane@yourcompany.com" className={inputClass} />
+                <label className="text-sm font-medium text-[var(--rx-text-body)] block mb-1">Last Name</label>
+                <input
+                  name="lastName"
+                  required
+                  minLength={1}
+                  placeholder="Smith"
+                  className={inputClass}
+                  onChange={(e) => { e.target.value = e.target.value.replace(/[^A-Za-z\s-]/g, ""); }}
+                  onBlur={(e) => {
+                    const v = e.target.value.trim();
+                    if (v) e.target.value = v.split(/\s+/).map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+                  }}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-[var(--rx-text-body)] block mb-1">Email Address</label>
+                <input name="email" type="email" required placeholder="john@yourcompany.com" className={inputClass} />
               </div>
               <div>
                 <label className="text-sm font-medium text-[var(--rx-text-body)] block mb-1">Temporary Password</label>
