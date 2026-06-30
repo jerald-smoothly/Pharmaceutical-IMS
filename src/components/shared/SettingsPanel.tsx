@@ -63,7 +63,17 @@ function toTitleName(str: string) {
 
 const inputClass = "w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder:text-gray-400";
 
+type Tab = "profile" | "password" | "api";
+
+const TABS: { id: Tab; label: string }[] = [
+  { id: "profile", label: "Profile" },
+  { id: "password", label: "Change Password" },
+  { id: "api", label: "API" },
+];
+
 export default function SettingsPanel() {
+  const [activeTab, setActiveTab] = useState<Tab | null>(null);
+
   // ── Profile state ──────────────────────────────────────────
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileSaving, setProfileSaving] = useState(false);
@@ -90,7 +100,6 @@ export default function SettingsPanel() {
         setFirstName(data.firstName ?? "");
         setLastName(data.lastName ?? "");
         setEmail(data.email ?? "");
-
         if (data.phone) {
           try {
             const parsed = parsePhoneNumber(data.phone);
@@ -197,177 +206,215 @@ export default function SettingsPanel() {
     setConfirmError("");
   }
 
-  if (profileLoading) {
-    return <div className="text-sm text-muted-foreground">Loading...</div>;
-  }
-
   return (
-    <div className="max-w-2xl space-y-8">
-      {/* ── Profile ── */}
-      <Card>
-        <CardContent className="p-6">
-          <h2 className="text-base font-semibold text-gray-900 mb-5">Profile</h2>
-          <form onSubmit={onSaveProfile} className="space-y-4">
-            {customerId && (
-              <div>
-                <label className="text-sm font-medium text-gray-700 block mb-1">Customer ID</label>
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-sm bg-gray-50 border rounded-lg px-3 py-2 text-gray-700 select-all">
-                    {customerId}
-                  </span>
-                  <span className="text-xs text-muted-foreground">Unique account identifier — never changes</span>
+    <div>
+      {/* ── Tab bar ── */}
+      <div className="flex gap-1 border-b mb-6">
+        {TABS.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`px-5 py-2.5 text-sm font-medium rounded-t-lg transition-colors -mb-px ${
+              activeTab === tab.id
+                ? "bg-white border border-b-white border-gray-200 text-blue-600"
+                : "text-gray-500 hover:text-gray-800 hover:bg-gray-50"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── No tab selected ── */}
+      {activeTab === null && (
+        <p className="text-sm text-muted-foreground">Select a section above to get started.</p>
+      )}
+
+      {/* ── Profile tab ── */}
+      {activeTab === "profile" && (
+        <div className="max-w-2xl">
+          {profileLoading ? (
+            <p className="text-sm text-muted-foreground">Loading...</p>
+          ) : (
+            <Card>
+              <CardContent className="p-6">
+                <form onSubmit={onSaveProfile} className="space-y-4">
+                  {customerId && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 block mb-1">Customer ID</label>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-sm bg-gray-50 border rounded-lg px-3 py-2 text-gray-700 select-all">
+                          {customerId}
+                        </span>
+                        <span className="text-xs text-muted-foreground">Unique account identifier — never changes</span>
+                      </div>
+                    </div>
+                  )}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 block mb-1">First Name</label>
+                      <input
+                        type="text"
+                        required
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value.replace(/[^A-Za-z]/g, ""))}
+                        onBlur={() => setFirstName(toTitleWord(firstName))}
+                        placeholder="John"
+                        className={inputClass}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 block mb-1">Last Name</label>
+                      <input
+                        type="text"
+                        required
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value.replace(/[^A-Za-z\s-]/g, ""))}
+                        onBlur={() => setLastName(toTitleName(lastName))}
+                        placeholder="Smith"
+                        className={inputClass}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 block mb-1">Email Address</label>
+                    <input
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@company.com"
+                      className={inputClass}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 block mb-1">Phone Number</label>
+                    <div className="flex gap-2">
+                      <select
+                        value={country}
+                        onChange={(e) => handleCountryChange(e.target.value as CountryCode)}
+                        className="border rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white w-48 shrink-0"
+                      >
+                        <optgroup label="Common">
+                          {priorityCountries.map((c) => (
+                            <option key={c.code} value={c.code}>{c.name} (+{c.dial})</option>
+                          ))}
+                        </optgroup>
+                        <optgroup label="All Countries">
+                          {otherCountries.map((c) => (
+                            <option key={c.code} value={c.code}>{c.name} (+{c.dial})</option>
+                          ))}
+                        </optgroup>
+                      </select>
+                      <input
+                        type="tel"
+                        value={phoneInput}
+                        onChange={(e) => handlePhoneChange(e.target.value)}
+                        onBlur={handlePhoneBlur}
+                        placeholder={getPlaceholder(country)}
+                        className={`${inputClass} flex-1 ${phoneError ? "border-red-400 focus:ring-red-400" : ""}`}
+                      />
+                    </div>
+                    {phoneError && <p className="text-xs text-red-500 mt-1">{phoneError}</p>}
+                  </div>
+
+                  <div className="pt-1">
+                    <button
+                      type="submit"
+                      disabled={profileSaving}
+                      className="px-5 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-all disabled:opacity-50"
+                    >
+                      {profileSaving ? "Saving..." : "Update Profile"}
+                    </button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* ── Change Password tab ── */}
+      {activeTab === "password" && (
+        <div className="max-w-2xl">
+          <Card>
+            <CardContent className="p-6">
+              <form onSubmit={onChangePassword} className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 block mb-1">Current Password</label>
+                  <input
+                    name="currentPassword"
+                    type="password"
+                    required
+                    placeholder="Current Password"
+                    className={inputClass}
+                  />
                 </div>
-              </div>
-            )}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-sm font-medium text-gray-700 block mb-1">First Name</label>
-                <input
-                  type="text"
-                  required
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value.replace(/[^A-Za-z]/g, ""))}
-                  onBlur={() => setFirstName(toTitleWord(firstName))}
-                  placeholder="John"
-                  className={inputClass}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700 block mb-1">Last Name</label>
-                <input
-                  type="text"
-                  required
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value.replace(/[^A-Za-z\s-]/g, ""))}
-                  onBlur={() => setLastName(toTitleName(lastName))}
-                  placeholder="Smith"
-                  className={inputClass}
-                />
-              </div>
-            </div>
 
-            <div>
-              <label className="text-sm font-medium text-gray-700 block mb-1">Email Address</label>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@company.com"
-                className={inputClass}
-              />
-            </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 block mb-1">New Password</label>
+                  <input
+                    ref={newPasswordRef}
+                    name="newPassword"
+                    type="password"
+                    required
+                    placeholder="New Password"
+                    className={inputClass}
+                    onChange={() => {
+                      if (confirmPasswordRef.current?.value) {
+                        setConfirmError(confirmPasswordRef.current.value !== newPasswordRef.current?.value ? "Passwords do not match" : "");
+                      }
+                    }}
+                  />
+                </div>
 
-            <div>
-              <label className="text-sm font-medium text-gray-700 block mb-1">Phone Number</label>
-              <div className="flex gap-2">
-                <select
-                  value={country}
-                  onChange={(e) => handleCountryChange(e.target.value as CountryCode)}
-                  className="border rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white w-48 shrink-0"
-                >
-                  <optgroup label="Common">
-                    {priorityCountries.map((c) => (
-                      <option key={c.code} value={c.code}>{c.name} (+{c.dial})</option>
-                    ))}
-                  </optgroup>
-                  <optgroup label="All Countries">
-                    {otherCountries.map((c) => (
-                      <option key={c.code} value={c.code}>{c.name} (+{c.dial})</option>
-                    ))}
-                  </optgroup>
-                </select>
-                <input
-                  type="tel"
-                  value={phoneInput}
-                  onChange={(e) => handlePhoneChange(e.target.value)}
-                  onBlur={handlePhoneBlur}
-                  placeholder={getPlaceholder(country)}
-                  className={`${inputClass} flex-1 ${phoneError ? "border-red-400 focus:ring-red-400" : ""}`}
-                />
-              </div>
-              {phoneError && <p className="text-xs text-red-500 mt-1">{phoneError}</p>}
-            </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 block mb-1">Confirm Password</label>
+                  <input
+                    ref={confirmPasswordRef}
+                    name="confirmPassword"
+                    type="password"
+                    required
+                    placeholder="Confirm Password"
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (!val) { setConfirmError(""); return; }
+                      setConfirmError(val !== newPasswordRef.current?.value ? "Passwords do not match" : "");
+                    }}
+                    onBlur={(e) => {
+                      if (e.target.value && e.target.value !== newPasswordRef.current?.value) setConfirmError("Passwords do not match");
+                    }}
+                    className={`${inputClass} ${confirmError ? "border-red-400 focus:ring-red-400" : ""}`}
+                  />
+                  {confirmError && <p className="text-xs text-red-500 mt-1">{confirmError}</p>}
+                </div>
 
-            <div className="pt-1">
-              <button
-                type="submit"
-                disabled={profileSaving}
-                className="px-5 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-all disabled:opacity-50"
-              >
-                {profileSaving ? "Saving..." : "Update Profile"}
-              </button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+                <div className="pt-1">
+                  <button
+                    type="submit"
+                    disabled={passwordSaving}
+                    className="px-5 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-all disabled:opacity-50"
+                  >
+                    {passwordSaving ? "Saving..." : "Change Password"}
+                  </button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
-      {/* ── Change Password ── */}
-      <Card>
-        <CardContent className="p-6">
-          <h2 className="text-base font-semibold text-gray-900 mb-5">Change Password</h2>
-          <form onSubmit={onChangePassword} className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-gray-700 block mb-1">Current Password</label>
-              <input
-                name="currentPassword"
-                type="password"
-                required
-                placeholder="Current Password"
-                className={inputClass}
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-gray-700 block mb-1">New Password</label>
-              <input
-                ref={newPasswordRef}
-                name="newPassword"
-                type="password"
-                required
-                placeholder="New Password"
-                className={inputClass}
-                onChange={() => {
-                  if (confirmPasswordRef.current?.value) {
-                    setConfirmError(confirmPasswordRef.current.value !== newPasswordRef.current?.value ? "Passwords do not match" : "");
-                  }
-                }}
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-gray-700 block mb-1">Confirm Password</label>
-              <input
-                ref={confirmPasswordRef}
-                name="confirmPassword"
-                type="password"
-                required
-                placeholder="Confirm Password"
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (!val) { setConfirmError(""); return; }
-                  setConfirmError(val !== newPasswordRef.current?.value ? "Passwords do not match" : "");
-                }}
-                onBlur={(e) => {
-                  if (e.target.value && e.target.value !== newPasswordRef.current?.value) setConfirmError("Passwords do not match");
-                }}
-                className={`${inputClass} ${confirmError ? "border-red-400 focus:ring-red-400" : ""}`}
-              />
-              {confirmError && <p className="text-xs text-red-500 mt-1">{confirmError}</p>}
-            </div>
-
-            <div className="pt-1">
-              <button
-                type="submit"
-                disabled={passwordSaving}
-                className="px-5 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-all disabled:opacity-50"
-              >
-                {passwordSaving ? "Saving..." : "Change Password"}
-              </button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+      {/* ── API tab ── */}
+      {activeTab === "api" && (
+        <iframe
+          src="/api-docs"
+          className="w-full rounded-lg border"
+          style={{ height: "calc(100vh - 220px)", minHeight: "600px" }}
+          title="API Documentation"
+        />
+      )}
     </div>
   );
 }

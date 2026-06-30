@@ -9,7 +9,6 @@ import {
   Building2,
   ShoppingCart,
   LogOut,
-  FileCode2,
   UserCog,
   Settings,
 } from "lucide-react";
@@ -23,7 +22,6 @@ const baseNav = [
   { label: "Contacts", href: "/crm/contacts", icon: Users },
   { label: "Companies", href: "/crm/companies", icon: Building2 },
   { label: "Orders", href: "/orders", icon: ShoppingCart },
-  { label: "API Docs", href: "/api-docs", icon: FileCode2 },
 ];
 
 const adminOnlyNav = [
