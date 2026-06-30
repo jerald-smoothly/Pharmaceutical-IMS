@@ -140,12 +140,18 @@ export default function ContactFormDialog({ children, contact, companies }: Prop
     setLoading(true);
     const fd = new FormData(e.currentTarget);
     const data: Record<string, string | null> = {};
+
+    // Only include non-empty text fields; companyId is handled separately
     fd.forEach((v, k) => {
+      if (k === "companyId") return;
       const val = String(v).trim();
-      data[k] = val || null;
+      if (val) data[k] = val;
     });
 
-    // Phone is controlled — override whatever FormData picked up
+    // companyId: always send (null = no company, needed to clear association on edit)
+    data.companyId = String(fd.get("companyId") ?? "").trim() || null;
+
+    // Phone is controlled — always send (null = no phone)
     if (phoneInput.trim()) {
       const parsed = parsePhoneNumber(phoneInput, country);
       data.phone = parsed?.formatInternational() ?? `+${getCountryCallingCode(country)} ${phoneInput.replace(/\D/g, "")}`;
@@ -263,10 +269,6 @@ export default function ContactFormDialog({ children, contact, companies }: Prop
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
                 </select>
-              </div>
-              <div className="col-span-2">
-                <label className="text-sm font-medium text-gray-700 block mb-1">Notes</label>
-                <textarea name="notes" rows={3} defaultValue={contact?.notes ?? ""} className={`${inputClass} resize-none`} />
               </div>
             </div>
             <div className="flex justify-end gap-3 pt-2">

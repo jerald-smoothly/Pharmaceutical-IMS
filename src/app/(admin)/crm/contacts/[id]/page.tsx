@@ -13,7 +13,7 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
     prisma.contact.findUnique({
       where: { id },
       include: {
-        company: { select: { id: true, name: true, industry: true, email: true, phone: true, website: true } },
+        company: { select: { id: true, name: true, email: true, phone: true, website: true } },
         orders: { orderBy: { placedAt: "desc" } },
       },
     }),
@@ -131,9 +131,6 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
                     <p className="font-medium text-sm group-hover:text-blue-600 transition-colors">
                       {contact.company.name}
                     </p>
-                    {contact.company.industry && (
-                      <p className="text-xs text-muted-foreground mt-0.5">{contact.company.industry}</p>
-                    )}
                   </Link>
                   {(contact.company.email || contact.company.phone || contact.company.website) && (
                     <div className="mt-3 pt-3 border-t space-y-1.5">

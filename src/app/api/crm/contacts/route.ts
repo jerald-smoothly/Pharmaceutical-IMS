@@ -7,10 +7,10 @@ const createSchema = z.object({
   firstName: z.string().min(1),
   lastName: z.string().min(1),
   email: z.string().email(),
-  phone: z.string().optional(),
+  phone: z.string().nullable().optional(),
   title: z.string().optional(),
   department: z.string().optional(),
-  companyId: z.string().optional(),
+  companyId: z.string().nullable().optional(),
   notes: z.string().optional(),
 });
 

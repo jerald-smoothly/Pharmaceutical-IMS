@@ -60,7 +60,6 @@ export default async function CompanyDetailPage({ params }: { params: Promise<{ 
             </Link>
           </div>
           <h1 className="text-2xl font-bold text-gray-900">{company.name}</h1>
-          {company.industry && <p className="text-muted-foreground">{company.industry}</p>}
         </div>
         <CompanyFormDialog company={company}>
           <button className="inline-flex items-center h-8 px-3 rounded-lg text-sm font-medium border border-border bg-background hover:bg-muted transition-all">
@@ -141,9 +140,6 @@ export default async function CompanyDetailPage({ params }: { params: Promise<{ 
                   <FileText className="w-4 h-4 shrink-0" />
                   Tax ID: {company.taxId}
                 </div>
-              )}
-              {company.notes && (
-                <div className="pt-2 border-t text-muted-foreground">{company.notes}</div>
               )}
             </CardContent>
           </Card>

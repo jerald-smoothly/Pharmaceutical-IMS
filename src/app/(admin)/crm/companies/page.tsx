@@ -91,7 +91,6 @@ export default async function CompaniesPage({ searchParams }: Props) {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-4 py-3 text-left font-medium text-gray-600">Company</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-600">Industry</th>
                 <th className="px-4 py-3 text-left font-medium text-gray-600">Location</th>
                 <th className="px-4 py-3 text-left font-medium text-gray-600">Contacts</th>
                 <th className="px-4 py-3 text-left font-medium text-gray-600">Orders</th>
@@ -106,7 +105,6 @@ export default async function CompaniesPage({ searchParams }: Props) {
                     </Link>
                     {c.email && <p className="text-xs text-muted-foreground">{c.email}</p>}
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground">{c.industry ?? "—"}</td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {[c.city, c.country].filter(Boolean).join(", ") || "—"}
                   </td>

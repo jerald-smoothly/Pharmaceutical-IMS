@@ -8,7 +8,6 @@ import { useRouter } from "next/navigation";
 interface Company {
   id: string;
   name: string;
-  industry?: string | null;
   address?: string | null;
   city?: string | null;
   state?: string | null;
@@ -18,7 +17,6 @@ interface Company {
   email?: string | null;
   website?: string | null;
   taxId?: string | null;
-  notes?: string | null;
 }
 
 interface Props {
@@ -28,10 +26,9 @@ interface Props {
 
 const fields = [
   { name: "name", label: "Company Name *", required: true, colSpan: 2 },
-  { name: "industry", label: "Industry", colSpan: 1 },
   { name: "email", label: "Email", type: "email", colSpan: 1 },
   { name: "phone", label: "Phone", colSpan: 1 },
-  { name: "website", label: "Website", colSpan: 1 },
+  { name: "website", label: "Website", colSpan: 2 },
   { name: "address", label: "Address", colSpan: 2 },
   { name: "city", label: "City", colSpan: 1 },
   { name: "state", label: "State / Province", colSpan: 1 },
@@ -95,15 +92,6 @@ export default function CompanyFormDialog({ children, company }: Props) {
                   />
                 </div>
               ))}
-              <div className="col-span-2">
-                <label className="text-sm font-medium text-gray-700 block mb-1">Notes</label>
-                <textarea
-                  name="notes"
-                  rows={3}
-                  defaultValue={company?.notes ?? ""}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                />
-              </div>
             </div>
             <div className="flex justify-end gap-3 pt-2">
               <button
