@@ -133,7 +133,7 @@ export default async function DashboardPage() {
           <section className="bg-[var(--rx-surface)] border border-[var(--rx-border)] rounded-2xl overflow-hidden">
             <div className="px-[22px] pt-[18px] pb-[14px] border-b border-[var(--rx-border-subtle)]">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-[10px]">
+                <Link href="/inventory?expiry=30" className="flex items-center gap-[10px] group">
                   <div className="w-[30px] h-[30px] rounded-[8px] bg-[#fdecec] dark:bg-[#dc2626]/15 flex items-center justify-center">
                     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
                       <circle cx="12" cy="12" r="10"/>
@@ -141,10 +141,10 @@ export default async function DashboardPage() {
                     </svg>
                   </div>
                   <div>
-                    <h2 className="text-[15px] font-semibold text-[var(--rx-text-strong)] tracking-tight m-0">Expiring Soon</h2>
+                    <h2 className="text-[15px] font-semibold text-[var(--rx-text-strong)] tracking-tight m-0 group-hover:text-[#3b6fd4] transition-colors">Expiring Soon</h2>
                     <p className="text-[12px] text-[var(--rx-text-muted)] mt-0.5 m-0">Batches within 30 days</p>
                   </div>
-                </div>
+                </Link>
                 <span className="inline-flex items-center gap-1.5 px-[9px] py-1 bg-[#fdecec] dark:bg-[#dc2626]/15 rounded-[7px] text-[12px] font-semibold text-[#c0392b]">
                   {expiringBatches.length} batch{expiringBatches.length !== 1 ? "es" : ""}
                 </span>
@@ -182,29 +182,22 @@ export default async function DashboardPage() {
               )}
             </div>
 
-            <Link
-              href="/inventory?expiry=30"
-              className="flex items-center justify-center gap-1.5 py-[13px] border-t border-[var(--rx-border-subtle)] text-[12.5px] font-semibold text-[var(--rx-text-secondary)] hover:text-[#3b6fd4] transition-colors"
-            >
-              View all expiring inventory
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M5 12h14M13 6l6 6-6 6"/>
-              </svg>
-            </Link>
           </section>
 
           {/* Recent Orders */}
           <section className="bg-[var(--rx-surface)] border border-[var(--rx-border)] rounded-2xl overflow-hidden">
             <div className="px-[22px] pt-[18px] pb-4 border-b border-[var(--rx-border-subtle)] flex items-center gap-[10px]">
-              <div className="w-[30px] h-[30px] rounded-[8px] bg-[var(--rx-sb-active-bg)] flex items-center justify-center">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#3b6fd4" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 3v18h18"/><path d="m7 14 3-4 3 2 4-6"/>
-                </svg>
-              </div>
-              <div>
-                <h2 className="text-[15px] font-semibold text-[var(--rx-text-strong)] tracking-tight m-0">Recent Orders</h2>
-                <p className="text-[12px] text-[var(--rx-text-muted)] mt-0.5 m-0">Latest activity</p>
-              </div>
+              <Link href="/orders" className="flex items-center gap-[10px] group">
+                <div className="w-[30px] h-[30px] rounded-[8px] bg-[var(--rx-sb-active-bg)] flex items-center justify-center">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#3b6fd4" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 3v18h18"/><path d="m7 14 3-4 3 2 4-6"/>
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-[15px] font-semibold text-[var(--rx-text-strong)] tracking-tight m-0 group-hover:text-[#3b6fd4] transition-colors">Recent Orders</h2>
+                  <p className="text-[12px] text-[var(--rx-text-muted)] mt-0.5 m-0">Latest activity</p>
+                </div>
+              </Link>
             </div>
 
             <div className="px-2 py-2">
@@ -236,15 +229,6 @@ export default async function DashboardPage() {
               )}
             </div>
 
-            <Link
-              href="/orders"
-              className="flex items-center justify-center gap-1.5 py-[13px] border-t border-[var(--rx-border-subtle)] text-[12.5px] font-semibold text-[var(--rx-text-secondary)] hover:text-[#3b6fd4] transition-colors"
-            >
-              View all orders
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M5 12h14M13 6l6 6-6 6"/>
-              </svg>
-            </Link>
           </section>
         </div>
       </div>
