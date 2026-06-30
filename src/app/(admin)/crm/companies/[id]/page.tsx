@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import CompanyFormDialog from "@/components/admin/CompanyFormDialog";
+import LinkContactDialog from "@/components/admin/LinkContactDialog";
+import UnlinkContactButton from "@/components/admin/UnlinkContactButton";
 
 const statusColors: Record<string, string> = {
   PENDING: "bg-yellow-100 text-yellow-800",
@@ -18,18 +20,28 @@ const statusColors: Record<string, string> = {
 export default async function CompanyDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  const company = await prisma.company.findUnique({
-    where: { id },
-    include: {
-      contacts: { where: { isActive: true }, orderBy: { firstName: "asc" } },
-      orders: {
-        orderBy: { placedAt: "desc" },
-        take: 10,
-        include: { items: { select: { quantity: true } } },
+  const [company, availableContacts] = await Promise.all([
+    prisma.company.findUnique({
+      where: { id },
+      include: {
+        contacts: { where: { isActive: true }, orderBy: { firstName: "asc" } },
+        orders: {
+          orderBy: { placedAt: "desc" },
+          take: 10,
+          include: { items: { select: { quantity: true } } },
+        },
+        _count: { select: { contacts: true, orders: true } },
       },
-      _count: { select: { contacts: true, orders: true } },
-    },
-  });
+    }),
+    prisma.contact.findMany({
+      where: {
+        isActive: true,
+        OR: [{ companyId: null }, { companyId: { not: id } }],
+      },
+      select: { id: true, firstName: true, lastName: true, email: true, company: { select: { name: true } } },
+      orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
+    }),
+  ]);
 
   if (!company) notFound();
 
@@ -103,14 +115,17 @@ export default async function CompanyDetailPage({ params }: { params: Promise<{ 
         <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Users className="w-4 h-4" />
-                Contacts ({company._count.contacts})
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Users className="w-4 h-4" />
+                  Contacts ({company._count.contacts})
+                </CardTitle>
+                <LinkContactDialog companyId={id} contacts={availableContacts} />
+              </div>
             </CardHeader>
             <CardContent>
               {company.contacts.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No contacts yet.</p>
+                <p className="text-sm text-muted-foreground">No contacts yet. Use &quot;Link Contact&quot; to add one.</p>
               ) : (
                 <div className="space-y-2">
                   {company.contacts.map((c) => (
@@ -121,7 +136,10 @@ export default async function CompanyDetailPage({ params }: { params: Promise<{ 
                         </Link>
                         {c.title && <p className="text-xs text-muted-foreground">{c.title}</p>}
                       </div>
-                      <a href={`mailto:${c.email}`} className="text-xs text-muted-foreground hover:text-foreground">{c.email}</a>
+                      <div className="flex items-center gap-4">
+                        <a href={`mailto:${c.email}`} className="text-xs text-muted-foreground hover:text-foreground">{c.email}</a>
+                        <UnlinkContactButton contactId={c.id} />
+                      </div>
                     </div>
                   ))}
                 </div>
