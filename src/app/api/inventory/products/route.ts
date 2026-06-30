@@ -1,6 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { z } from "zod";
+
+const createSchema = z.object({
+  sku: z.string().min(1, "SKU is required"),
+  name: z.string().min(2, "Product name must be at least 2 characters"),
+  genericName: z.string().optional(),
+  manufacturer: z.string().optional(),
+  category: z.string().optional(),
+  description: z.string().optional(),
+  unit: z.string().default("box"),
+  unitPrice: z.coerce.number().positive("Unit price must be greater than 0"),
+  requiresPrescription: z.boolean().default(false),
+});
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -62,4 +75,41 @@ export async function GET(req: NextRequest) {
     page,
     pages: Math.ceil(total / limit),
   });
+}
+
+export async function POST(req: NextRequest) {
+  const session = await auth();
+  if (!session?.user || !["ADMIN", "STAFF"].includes(session.user.role)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const body = await req.json();
+  const parsed = createSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
+  }
+
+  const { sku, ...rest } = parsed.data;
+  const normalizedSku = sku.trim().toUpperCase();
+
+  const existing = await prisma.product.findUnique({ where: { sku: normalizedSku } });
+  if (existing) {
+    return NextResponse.json({ error: `A product with SKU "${normalizedSku}" already exists` }, { status: 409 });
+  }
+
+  const product = await prisma.product.create({
+    data: { sku: normalizedSku, ...rest },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      userId: session.user.id,
+      action: "CREATE",
+      entity: "Product",
+      entityId: product.id,
+      after: { sku: normalizedSku, ...rest },
+    },
+  });
+
+  return NextResponse.json(product, { status: 201 });
 }

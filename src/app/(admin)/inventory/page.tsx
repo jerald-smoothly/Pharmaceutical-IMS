@@ -3,7 +3,8 @@ import { prisma } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Upload, Package } from "lucide-react";
+import { Upload, Package, Plus } from "lucide-react";
+import ProductFormDialog from "@/components/admin/ProductFormDialog";
 
 async function getProducts(search: string, page: number, expiry: string) {
   const limit = 25;
@@ -80,13 +81,21 @@ export default async function InventoryPage({ searchParams }: Props) {
           <h1 className="text-2xl font-bold text-gray-900">Inventory</h1>
           <p className="text-muted-foreground">{total} products</p>
         </div>
-        <Link
-          href="/inventory/import"
-          className="inline-flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/80 h-8 px-2.5 rounded-lg text-sm font-medium transition-all"
-        >
-          <Upload className="w-4 h-4" />
-          Import Stock
-        </Link>
+        <div className="flex items-center gap-2">
+          <ProductFormDialog>
+            <button className="inline-flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/80 h-8 px-2.5 rounded-lg text-sm font-medium transition-all">
+              <Plus className="w-4 h-4" />
+              New Product
+            </button>
+          </ProductFormDialog>
+          <Link
+            href="/inventory/import"
+            className="inline-flex items-center gap-2 h-8 px-2.5 rounded-lg text-sm font-medium border border-border bg-background hover:bg-muted transition-all"
+          >
+            <Upload className="w-4 h-4" />
+            Import Stock
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
