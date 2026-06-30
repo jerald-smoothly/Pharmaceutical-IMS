@@ -184,13 +184,12 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
                   <tr>
                     <th className="px-4 py-2.5 text-center font-medium text-gray-600">Order Number</th>
                     <th className="px-4 py-2.5 text-center font-medium text-gray-600">Order Date</th>
-                    <th className="px-4 py-2.5 text-center font-medium text-gray-600">Order Placed By</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
                   {contact.orders.length === 0 ? (
                     <tr>
-                      <td colSpan={3} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                      <td colSpan={2} className="px-4 py-8 text-center text-sm text-muted-foreground">
                         No orders placed yet.
                       </td>
                     </tr>
@@ -204,9 +203,6 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
                         </td>
                         <td className="px-4 py-3 text-center text-muted-foreground">
                           {new Date(o.placedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          {contact.firstName} {contact.lastName}
                         </td>
                       </tr>
                     ))

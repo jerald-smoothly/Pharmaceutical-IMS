@@ -29,7 +29,6 @@ export default function ProductFormDialog({ children }: Props) {
     });
 
     data.requiresPrescription = rxRequired;
-    if (data.unitPrice) data.unitPrice = parseFloat(data.unitPrice as string);
 
     const res = await fetch("/api/inventory/products", {
       method: "POST",
@@ -62,7 +61,7 @@ export default function ProductFormDialog({ children }: Props) {
           <form onSubmit={onSubmit} className="space-y-4 pt-2">
             <div className="grid grid-cols-2 gap-4">
 
-              <div>
+              <div className="col-span-2">
                 <label className="text-sm font-medium text-gray-700 block mb-1">SKU *</label>
                 <input
                   name="sku"
@@ -72,22 +71,6 @@ export default function ProductFormDialog({ children }: Props) {
                   className="w-full border rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase"
                 />
                 <p className="text-xs text-muted-foreground mt-1">Must be unique. Auto-uppercased.</p>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-gray-700 block mb-1">Unit Price *</label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                  <input
-                    name="unitPrice"
-                    type="number"
-                    min="0.01"
-                    step="0.01"
-                    required
-                    placeholder="0.00"
-                    className="w-full border rounded-lg pl-7 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
               </div>
 
               <div className="col-span-2">
