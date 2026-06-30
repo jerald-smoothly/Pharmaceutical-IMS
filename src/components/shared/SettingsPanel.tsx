@@ -72,7 +72,7 @@ const TABS: { id: Tab; label: string }[] = [
 ];
 
 export default function SettingsPanel() {
-  const [activeTab, setActiveTab] = useState<Tab | null>(null);
+  const [activeTab, setActiveTab] = useState<Tab>("profile");
 
   // ── Profile state ──────────────────────────────────────────
   const [profileLoading, setProfileLoading] = useState(true);
@@ -224,11 +224,6 @@ export default function SettingsPanel() {
           </button>
         ))}
       </div>
-
-      {/* ── No tab selected ── */}
-      {activeTab === null && (
-        <p className="text-sm text-muted-foreground">Select a section above to get started.</p>
-      )}
 
       {/* ── Profile tab ── */}
       {activeTab === "profile" && (
