@@ -150,14 +150,18 @@ export default function SettingsPanel() {
 
   async function onSaveProfile(e: React.FormEvent) {
     e.preventDefault();
-    if (!isValidPhoneNumber(phoneInput, country)) {
-      setPhoneTouched(true);
-      setPhoneError(`Invalid format. Example: ${getPlaceholder(country)}`);
-      toast.error("Please enter a valid Phone Number");
-      return;
+
+    let fullPhone: string | null = null;
+    if (phoneInput.trim()) {
+      if (!isValidPhoneNumber(phoneInput, country)) {
+        setPhoneTouched(true);
+        setPhoneError(`Invalid format. Example: ${getPlaceholder(country)}`);
+        toast.error("Please enter a valid Phone Number");
+        return;
+      }
+      const parsed = parsePhoneNumber(phoneInput, country);
+      fullPhone = parsed?.formatInternational() ?? `+${getCountryCallingCode(country)} ${phoneInput.replace(/\D/g, "")}`;
     }
-    const parsed = parsePhoneNumber(phoneInput, country);
-    const fullPhone = parsed?.formatInternational() ?? `+${getCountryCallingCode(country)} ${phoneInput.replace(/\D/g, "")}`;
 
     setProfileSaving(true);
     const res = await fetch("/api/settings/profile", {
@@ -256,7 +260,6 @@ export default function SettingsPanel() {
                       <label className="text-sm font-medium text-[var(--rx-text-body)] block mb-1">First Name</label>
                       <input
                         type="text"
-                        required
                         value={firstName}
                         onChange={(e) => setFirstName(e.target.value.replace(/[^A-Za-z]/g, ""))}
                         onBlur={() => setFirstName(toTitleWord(firstName))}
@@ -268,7 +271,6 @@ export default function SettingsPanel() {
                       <label className="text-sm font-medium text-[var(--rx-text-body)] block mb-1">Last Name</label>
                       <input
                         type="text"
-                        required
                         value={lastName}
                         onChange={(e) => setLastName(e.target.value.replace(/[^A-Za-z\s-]/g, ""))}
                         onBlur={() => setLastName(toTitleName(lastName))}
@@ -282,7 +284,6 @@ export default function SettingsPanel() {
                     <label className="text-sm font-medium text-[var(--rx-text-body)] block mb-1">Email Address</label>
                     <input
                       type="email"
-                      required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="you@company.com"
