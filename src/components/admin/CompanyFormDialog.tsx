@@ -124,12 +124,10 @@ export default function CompanyFormDialog({ children, company }: Props) {
 
   // Derived lists
   const stateOptions = selectedCountry ? State.getStatesOfCountry(selectedCountry) : [];
+  const cityReady = !!selectedCountry && (stateOptions.length === 0 || !!selectedState);
   const cityOptions = (() => {
-    if (!selectedCountry) return [];
-    if (stateOptions.length > 0) {
-      if (!selectedState) return [];
-      return City.getCitiesOfState(selectedCountry, selectedState);
-    }
+    if (!cityReady) return [];
+    if (stateOptions.length > 0) return City.getCitiesOfState(selectedCountry, selectedState);
     return City.getCitiesOfCountry(selectedCountry) ?? [];
   })();
 
@@ -408,33 +406,25 @@ export default function CompanyFormDialog({ children, company }: Props) {
               {/* City */}
               <div>
                 <label className="text-sm font-medium text-gray-700 block mb-1">City</label>
-                {cityOptions.length > 0 ? (
-                  <select
-                    value={selectedCity}
-                    onChange={(e) => setSelectedCity(e.target.value)}
-                    className={selectClass(false)}
-                  >
-                    <option value="">— Select City —</option>
-                    {cityOptions.map((c) => (
-                      <option key={`${c.name}-${c.stateCode ?? ""}`} value={c.name}>{c.name}</option>
-                    ))}
-                  </select>
-                ) : (
-                  <input
-                    type="text"
-                    value={selectedCity}
-                    onChange={(e) => setSelectedCity(e.target.value)}
-                    disabled={!selectedCountry}
-                    placeholder={
-                      !selectedCountry
-                        ? "Select a country first"
-                        : stateOptions.length > 0 && !selectedState
-                        ? "Select a state first"
-                        : "Enter city"
-                    }
-                    className={`${inputClass}${!selectedCountry ? " opacity-50 cursor-not-allowed" : ""}`}
-                  />
-                )}
+                <select
+                  value={selectedCity}
+                  onChange={(e) => setSelectedCity(e.target.value)}
+                  disabled={!cityReady || cityOptions.length === 0}
+                  className={selectClass(!cityReady || cityOptions.length === 0)}
+                >
+                  <option value="">
+                    {!selectedCountry
+                      ? "Select a country first"
+                      : stateOptions.length > 0 && !selectedState
+                      ? "Select a state / province first"
+                      : cityOptions.length === 0
+                      ? "No cities available"
+                      : "— Select City —"}
+                  </option>
+                  {cityOptions.map((c) => (
+                    <option key={`${c.name}-${c.stateCode ?? ""}`} value={c.name}>{c.name}</option>
+                  ))}
+                </select>
               </div>
 
               {/* Postal Code */}
