@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/db";
-import { Users, Plus } from "lucide-react";
+import { Users, Plus, Upload } from "lucide-react";
 import Link from "next/link";
 import ContactFormDialog from "@/components/admin/ContactFormDialog";
+import ImportCrmDialog from "@/components/admin/ImportCrmDialog";
 
 async function getContacts(search: string, page: number) {
   const limit = 20;
@@ -50,12 +51,20 @@ export default async function ContactsPage({ searchParams }: Props) {
           <h1 className="text-2xl font-bold text-gray-900">Contacts</h1>
           <p className="text-muted-foreground">{total} contacts</p>
         </div>
-        <ContactFormDialog companies={companies}>
-          <button className="inline-flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/80 h-8 px-3 rounded-lg text-sm font-medium transition-all">
-            <Plus className="w-4 h-4" />
-            Add Contact
-          </button>
-        </ContactFormDialog>
+        <div className="flex items-center gap-2">
+          <ImportCrmDialog entity="contacts">
+            <button className="inline-flex items-center gap-2 h-8 px-3 rounded-lg text-sm font-medium border border-border bg-background hover:bg-muted transition-all">
+              <Upload className="w-4 h-4" />
+              Import Contacts
+            </button>
+          </ImportCrmDialog>
+          <ContactFormDialog companies={companies}>
+            <button className="inline-flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/80 h-8 px-3 rounded-lg text-sm font-medium transition-all">
+              <Plus className="w-4 h-4" />
+              Add Contact
+            </button>
+          </ContactFormDialog>
+        </div>
       </div>
 
       <form className="flex gap-3">

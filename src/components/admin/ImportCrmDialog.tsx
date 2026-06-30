@@ -1,0 +1,287 @@
+"use client";
+
+import { useState, useRef, useCallback } from "react";
+import { Upload, FileSpreadsheet, CheckCircle, XCircle, AlertCircle, X } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { toast } from "sonner";
+
+interface ImportResult {
+  importedRows: number;
+  failedRows: number;
+  skippedRows: number;
+  errors: { row: number; message: string }[];
+}
+
+const CONFIG = {
+  contacts: {
+    title: "Import Contacts",
+    apiUrl: "/api/crm/contacts/import",
+    templateUrl: "/templates/contacts-import-template.csv",
+    buttonLabel: "Import Contacts",
+    columns: [
+      ["email *", "Email address — used as unique identifier; existing contacts are updated"],
+      ["first_name *", "First name (required when creating a new contact)"],
+      ["last_name *", "Last name (required when creating a new contact)"],
+      ["phone", "Phone number"],
+      ["title", "Job title"],
+      ["department", "Department"],
+      ["company_name", "Links the contact to a company (matched by name)"],
+      ["notes", "Notes"],
+    ],
+  },
+  companies: {
+    title: "Import Companies",
+    apiUrl: "/api/crm/companies/import",
+    templateUrl: "/templates/companies-import-template.csv",
+    buttonLabel: "Import Companies",
+    columns: [
+      ["name *", "Company name — used as unique identifier; existing companies are updated"],
+      ["industry", "Industry"],
+      ["email", "Business email"],
+      ["phone", "Phone number"],
+      ["website", "Website URL"],
+      ["address", "Street address"],
+      ["city", "City"],
+      ["state", "State / Province"],
+      ["country", "Country"],
+      ["postal_code", "Postal / ZIP code"],
+      ["notes", "Notes"],
+    ],
+  },
+} as const;
+
+type Entity = keyof typeof CONFIG;
+
+interface Props {
+  entity: Entity;
+  children: React.ReactNode;
+}
+
+export default function ImportCrmDialog({ entity, children }: Props) {
+  const [open, setOpen] = useState(false);
+  const cfg = CONFIG[entity];
+
+  const [file, setFile] = useState<File | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [result, setResult] = useState<ImportResult | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleFile = (f: File) => {
+    const ext = f.name.split(".").pop()?.toLowerCase();
+    if (!["csv", "xlsx"].includes(ext ?? "")) {
+      setFileError(`"${f.name}" is not accepted. Only CSV and XLSX files are allowed.`);
+      setFile(null);
+      return;
+    }
+    setFileError(null);
+    setFile(f);
+    setResult(null);
+  };
+
+  const onDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragging(false);
+    const f = e.dataTransfer.files[0];
+    if (f) handleFile(f);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const reset = () => {
+    setFile(null);
+    setFileError(null);
+    setResult(null);
+    setProgress(0);
+    if (inputRef.current) inputRef.current.value = "";
+  };
+
+  const handleOpenChange = (val: boolean) => {
+    setOpen(val);
+    if (!val) reset();
+  };
+
+  const upload = async () => {
+    if (!file) return;
+    setUploading(true);
+    setProgress(30);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      setProgress(60);
+      const res = await fetch(cfg.apiUrl, { method: "POST", body: form });
+      setProgress(90);
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error ?? "Import failed");
+        return;
+      }
+      setResult(data);
+      setProgress(100);
+      if (data.failedRows === 0) {
+        toast.success(`Imported ${data.importedRows} rows successfully.`);
+      } else if (data.importedRows > 0) {
+        toast.warning(`Imported ${data.importedRows} rows. ${data.failedRows} rows failed.`);
+      } else {
+        toast.error(`Import failed. All ${data.failedRows} rows had errors.`);
+      }
+    } catch {
+      toast.error("Network error. Please try again.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <>
+      <span onClick={() => setOpen(true)} className="cursor-pointer">{children}</span>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{cfg.title}</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 pt-2">
+            <Card>
+              <CardContent className="p-6">
+                <div
+                  className={`border-2 border-dashed rounded-xl p-10 text-center transition-colors ${
+                    dragging ? "border-blue-400 bg-blue-50" : "border-gray-200 hover:border-gray-300"
+                  }`}
+                  onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+                  onDragLeave={() => setDragging(false)}
+                  onDrop={onDrop}
+                >
+                  <FileSpreadsheet className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                  <p className="text-base font-medium text-gray-700 mb-1">
+                    Drop your file here, or{" "}
+                    <button className="text-blue-600 hover:underline" onClick={() => inputRef.current?.click()}>
+                      browse
+                    </button>
+                  </p>
+                  <p className="text-sm text-muted-foreground">Supports CSV, XLSX</p>
+                  <input
+                    ref={inputRef}
+                    type="file"
+                    accept=".csv,.xlsx"
+                    className="hidden"
+                    onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
+                  />
+                </div>
+
+                {fileError && (
+                  <div className="mt-4 flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">
+                    <XCircle className="w-4 h-4 shrink-0" />
+                    {fileError}
+                  </div>
+                )}
+
+                {file && (
+                  <div className="mt-4 flex items-center justify-between bg-gray-50 rounded-lg px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <FileSpreadsheet className="w-5 h-5 text-blue-500" />
+                      <div>
+                        <p className="text-sm font-medium">{file.name}</p>
+                        <p className="text-xs text-muted-foreground">{(file.size / 1024).toFixed(1)} KB</p>
+                      </div>
+                    </div>
+                    <button onClick={reset} className="text-gray-400 hover:text-gray-600">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+
+                {uploading && (
+                  <div className="mt-4">
+                    <Progress value={progress} className="h-2" />
+                    <p className="text-xs text-muted-foreground mt-1 text-center">Processing...</p>
+                  </div>
+                )}
+
+                <div className="mt-4 flex items-center gap-3">
+                  <Button onClick={upload} disabled={!file || uploading} className="flex-1">
+                    <Upload className="w-4 h-4 mr-2" />
+                    {uploading ? "Importing..." : cfg.buttonLabel}
+                  </Button>
+                  <a
+                    href={cfg.templateUrl}
+                    download
+                    className="inline-flex items-center h-8 px-2.5 rounded-lg text-sm font-medium border border-border bg-background hover:bg-muted transition-all"
+                  >
+                    Download Template
+                  </a>
+                </div>
+              </CardContent>
+            </Card>
+
+            {result && (
+              <Card>
+                <CardContent className="p-6">
+                  <h3 className="font-semibold mb-4">Import Results</h3>
+                  <div className="grid grid-cols-3 gap-4 mb-4">
+                    <div className="flex items-center gap-3 bg-green-50 rounded-lg p-4">
+                      <CheckCircle className="w-6 h-6 text-green-600 shrink-0" />
+                      <div>
+                        <p className="text-2xl font-bold text-green-700">{result.importedRows}</p>
+                        <p className="text-sm text-green-600">Rows imported</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 bg-gray-50 rounded-lg p-4">
+                      <AlertCircle className="w-6 h-6 text-gray-400 shrink-0" />
+                      <div>
+                        <p className="text-2xl font-bold text-gray-600">{result.skippedRows}</p>
+                        <p className="text-sm text-gray-500">Rows skipped</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 bg-red-50 rounded-lg p-4">
+                      <XCircle className="w-6 h-6 text-red-600 shrink-0" />
+                      <div>
+                        <p className="text-2xl font-bold text-red-700">{result.failedRows}</p>
+                        <p className="text-sm text-red-600">Rows failed</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {result.errors.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm font-medium text-amber-700">
+                        <AlertCircle className="w-4 h-4" />
+                        Errors
+                      </div>
+                      <div className="max-h-48 overflow-y-auto space-y-1">
+                        {result.errors.map((e, i) => (
+                          <div key={i} className="text-sm bg-red-50 rounded px-3 py-2">
+                            <span className="font-medium">Row {e.row}:</span> {e.message}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            <Card>
+              <CardContent className="p-6">
+                <h3 className="font-semibold mb-1">Required Columns</h3>
+                <p className="text-xs text-muted-foreground mb-3">Accepted file types: CSV, XLSX</p>
+                <div className="space-y-2 text-sm">
+                  {cfg.columns.map(([col, desc]) => (
+                    <div key={col} className="flex gap-3">
+                      <code className="bg-gray-100 px-2 py-0.5 rounded text-gray-700 shrink-0 self-start">{col}</code>
+                      <span className="text-muted-foreground">{desc}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}

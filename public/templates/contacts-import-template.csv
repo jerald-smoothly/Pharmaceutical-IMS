@@ -1,0 +1,3 @@
+email,first_name,last_name,phone,title,department,company_name,notes
+john.doe@example.com,John,Doe,+1 555-0100,Pharmacist,Clinical,ABC Pharmacy,
+jane.smith@example.com,Jane,Smith,+1 555-0101,Manager,Operations,,

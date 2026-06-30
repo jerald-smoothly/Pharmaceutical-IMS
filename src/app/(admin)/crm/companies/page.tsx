@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/db";
-import { Building2, Plus, Users, ShoppingCart } from "lucide-react";
+import { Building2, Plus, Upload, Users, ShoppingCart } from "lucide-react";
 import Link from "next/link";
 import CompanyFormDialog from "@/components/admin/CompanyFormDialog";
+import ImportCrmDialog from "@/components/admin/ImportCrmDialog";
 
 async function getCompanies(search: string, page: number) {
   const limit = 20;
@@ -47,12 +48,20 @@ export default async function CompaniesPage({ searchParams }: Props) {
           <h1 className="text-2xl font-bold text-gray-900">Companies</h1>
           <p className="text-muted-foreground">{total} companies</p>
         </div>
-        <CompanyFormDialog>
-          <button className="inline-flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/80 h-8 px-3 rounded-lg text-sm font-medium transition-all">
-            <Plus className="w-4 h-4" />
-            Add Company
-          </button>
-        </CompanyFormDialog>
+        <div className="flex items-center gap-2">
+          <ImportCrmDialog entity="companies">
+            <button className="inline-flex items-center gap-2 h-8 px-3 rounded-lg text-sm font-medium border border-border bg-background hover:bg-muted transition-all">
+              <Upload className="w-4 h-4" />
+              Import Companies
+            </button>
+          </ImportCrmDialog>
+          <CompanyFormDialog>
+            <button className="inline-flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/80 h-8 px-3 rounded-lg text-sm font-medium transition-all">
+              <Plus className="w-4 h-4" />
+              Add Company
+            </button>
+          </CompanyFormDialog>
+        </div>
       </div>
 
       <form className="flex gap-3">
