@@ -173,7 +173,7 @@ export default async function DashboardPage() {
                       <div className="w-1 self-stretch rounded-[3px] shrink-0" style={{ background: u.bar }} />
                       <div className="flex-1 min-w-0">
                         <div className="text-[13.5px] font-semibold text-[#1a2030]">{b.product.name}</div>
-                        <div className="mt-0.5 text-[11.5px] text-[#9aa3b2]" style={{ fontFamily: "var(--font-geist-mono), monospace" }}>
+                        <div className="mt-0.5 text-[11.5px] text-[#9aa3b2]" style={{ fontFamily: "var(--font-dm-mono), monospace" }}>
                           {b.product.sku} · Batch {b.batchNumber} · {stock} {stock === 1 ? "unit" : "units"}
                         </div>
                       </div>
@@ -226,7 +226,7 @@ export default async function DashboardPage() {
                   return (
                     <Link key={o.id} href={`/orders/${o.id}`} className="flex items-center gap-3 px-[14px] py-[13px] rounded-[11px] hover:bg-[#fafbfc] transition-colors">
                       <div className="flex-1 min-w-0">
-                        <div className="text-[13px] font-semibold text-[#1a2030]" style={{ fontFamily: "var(--font-geist-mono), monospace" }}>
+                        <div className="text-[13px] font-semibold text-[#1a2030]" style={{ fontFamily: "var(--font-dm-mono), monospace" }}>
                           {o.orderNumber}
                         </div>
                         <div className="mt-0.5 text-[12px] text-[#8a93a3] truncate">{customer}</div>
@@ -235,7 +235,7 @@ export default async function DashboardPage() {
                         <span className="px-[9px] py-[3px] rounded-full text-[10.5px] font-bold tracking-wide" style={{ background: s.bg, color: s.text }}>
                           {o.status}
                         </span>
-                        <span className="text-[12.5px] font-semibold text-[#1a2030]" style={{ fontFamily: "var(--font-geist-mono), monospace" }}>
+                        <span className="text-[12.5px] font-semibold text-[#1a2030]" style={{ fontFamily: "var(--font-dm-mono), monospace" }}>
                           ${Number(o.totalAmount).toFixed(2)}
                         </span>
                       </div>
