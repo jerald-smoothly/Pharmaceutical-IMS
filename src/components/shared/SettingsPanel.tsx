@@ -63,12 +63,13 @@ function toTitleName(str: string) {
 
 const inputClass = "w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder:text-gray-400";
 
-type Tab = "profile" | "password" | "api";
+type Tab = "profile" | "password" | "api" | "appearance";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "profile", label: "Profile" },
   { id: "password", label: "Change Password" },
   { id: "api", label: "API" },
+  { id: "appearance", label: "Appearance" },
 ];
 
 export default function SettingsPanel() {
@@ -91,6 +92,12 @@ export default function SettingsPanel() {
   const [confirmError, setConfirmError] = useState("");
   const newPasswordRef = useRef<HTMLInputElement>(null);
   const confirmPasswordRef = useRef<HTMLInputElement>(null);
+
+  // ── Appearance state ───────────────────────────────────────
+  const [darkMode, setDarkMode] = useState(false);
+  useEffect(() => {
+    setDarkMode(document.documentElement.classList.contains("dark"));
+  }, []);
 
   useEffect(() => {
     fetch("/api/settings/profile")
@@ -409,6 +416,43 @@ export default function SettingsPanel() {
           style={{ height: "calc(100vh - 220px)", minHeight: "600px" }}
           title="API Documentation"
         />
+      )}
+
+      {/* ── Appearance tab ── */}
+      {activeTab === "appearance" && (
+        <div className="max-w-2xl">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-700">Dark Mode</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Switch the interface to a dark colour scheme
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    const next = !darkMode;
+                    setDarkMode(next);
+                    document.documentElement.classList.toggle("dark", next);
+                    localStorage.setItem("theme", next ? "dark" : "light");
+                  }}
+                  role="switch"
+                  aria-checked={darkMode}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                    darkMode ? "bg-blue-600" : "bg-gray-200"
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-sm ring-0 transition-transform duration-200 ${
+                      darkMode ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   );
