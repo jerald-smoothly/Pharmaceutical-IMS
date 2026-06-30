@@ -130,64 +130,65 @@ export default async function DashboardPage() {
         <div className="grid gap-[18px] items-start" style={{ gridTemplateColumns: "1.32fr 1fr" }}>
 
           {/* Expiring Soon */}
-          <section className="bg-[var(--rx-surface)] border border-[var(--rx-border)] rounded-2xl overflow-hidden">
-            <div className="px-[22px] pt-[18px] pb-[14px] border-b border-[var(--rx-border-subtle)]">
-              <div className="flex items-center justify-between">
-                <Link href="/inventory?expiry=30" className="flex items-center gap-[10px] group">
-                  <div className="w-[30px] h-[30px] rounded-[8px] bg-[#fdecec] dark:bg-[#dc2626]/15 flex items-center justify-center">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="10"/>
-                      <polyline points="12 6 12 12 16 14"/>
-                    </svg>
-                  </div>
-                  <div>
-                    <h2 className="text-[15px] font-semibold text-[var(--rx-text-strong)] tracking-tight m-0 group-hover:text-[#3b6fd4] transition-colors">Expiring Soon</h2>
-                    <p className="text-[12px] text-[var(--rx-text-muted)] mt-0.5 m-0">Batches within 30 days</p>
-                  </div>
-                </Link>
-                <span className="inline-flex items-center gap-1.5 px-[9px] py-1 bg-[#fdecec] dark:bg-[#dc2626]/15 rounded-[7px] text-[12px] font-semibold text-[#c0392b]">
-                  {expiringBatches.length} batch{expiringBatches.length !== 1 ? "es" : ""}
-                </span>
-              </div>
-            </div>
-
-            <div className="px-2 py-2">
-              {expiringBatches.length === 0 ? (
-                <p className="text-[13px] text-[var(--rx-text-muted)] px-4 py-6 text-center">No batches expiring in the next 30 days.</p>
-              ) : (
-                expiringBatches.map((b) => {
-                  const daysLeft = Math.ceil((b.expiryDate.getTime() - now.getTime()) / 86400000);
-                  const u = urgencyStyle(daysLeft);
-                  const stock = b.quantityIn - b.quantityOut - b.quantityOnHold;
-                  return (
-                    <div key={b.id} className="flex items-center gap-[14px] px-[14px] py-[13px] rounded-[11px] hover:bg-[var(--rx-border-subtle)] transition-colors">
-                      <div className="w-1 self-stretch rounded-[3px] shrink-0" style={{ background: u.bar }} />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-[13.5px] font-semibold text-[var(--rx-text-body)]">{b.product.name}</div>
-                        <div className="mt-0.5 text-[11.5px] text-[var(--rx-text-faint)]" style={{ fontFamily: "var(--font-dm-mono), monospace" }}>
-                          {b.product.sku} · Batch {b.batchNumber} · {stock} {stock === 1 ? "unit" : "units"}
-                        </div>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <span className="inline-flex items-center px-[9px] py-[3px] rounded-full text-[11.5px] font-semibold" style={{ background: u.pillBg, color: u.pillText }}>
-                          {u.label}
-                        </span>
-                        <div className="mt-1 text-[11px] text-[var(--rx-text-faint)]">
-                          Exp. {b.expiryDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                        </div>
-                      </div>
+          <Link href="/inventory?expiry=30" className="block group">
+            <section className="bg-[var(--rx-surface)] border border-[var(--rx-border)] rounded-2xl overflow-hidden transition-all group-hover:shadow-[0_6px_22px_-10px_rgba(15,23,41,0.22)] group-hover:border-[var(--rx-text-faint)]">
+              <div className="px-[22px] pt-[18px] pb-[14px] border-b border-[var(--rx-border-subtle)]">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-[10px]">
+                    <div className="w-[30px] h-[30px] rounded-[8px] bg-[#fdecec] dark:bg-[#dc2626]/15 flex items-center justify-center">
+                      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                      </svg>
                     </div>
-                  );
-                })
-              )}
-            </div>
+                    <div>
+                      <h2 className="text-[15px] font-semibold text-[var(--rx-text-strong)] tracking-tight m-0 group-hover:text-[#3b6fd4] transition-colors">Expiring Soon</h2>
+                      <p className="text-[12px] text-[var(--rx-text-muted)] mt-0.5 m-0">Batches within 30 days</p>
+                    </div>
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 px-[9px] py-1 bg-[#fdecec] dark:bg-[#dc2626]/15 rounded-[7px] text-[12px] font-semibold text-[#c0392b]">
+                    {expiringBatches.length} batch{expiringBatches.length !== 1 ? "es" : ""}
+                  </span>
+                </div>
+              </div>
 
-          </section>
+              <div className="px-2 py-2">
+                {expiringBatches.length === 0 ? (
+                  <p className="text-[13px] text-[var(--rx-text-muted)] px-4 py-6 text-center">No batches expiring in the next 30 days.</p>
+                ) : (
+                  expiringBatches.map((b) => {
+                    const daysLeft = Math.ceil((b.expiryDate.getTime() - now.getTime()) / 86400000);
+                    const u = urgencyStyle(daysLeft);
+                    const stock = b.quantityIn - b.quantityOut - b.quantityOnHold;
+                    return (
+                      <div key={b.id} className="flex items-center gap-[14px] px-[14px] py-[13px] rounded-[11px] hover:bg-[var(--rx-border-subtle)] transition-colors">
+                        <div className="w-1 self-stretch rounded-[3px] shrink-0" style={{ background: u.bar }} />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[13.5px] font-semibold text-[var(--rx-text-body)]">{b.product.name}</div>
+                          <div className="mt-0.5 text-[11.5px] text-[var(--rx-text-faint)]" style={{ fontFamily: "var(--font-dm-mono), monospace" }}>
+                            {b.product.sku} · Batch {b.batchNumber} · {stock} {stock === 1 ? "unit" : "units"}
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="inline-flex items-center px-[9px] py-[3px] rounded-full text-[11.5px] font-semibold" style={{ background: u.pillBg, color: u.pillText }}>
+                            {u.label}
+                          </span>
+                          <div className="mt-1 text-[11px] text-[var(--rx-text-faint)]">
+                            Exp. {b.expiryDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </section>
+          </Link>
 
           {/* Recent Orders */}
-          <section className="bg-[var(--rx-surface)] border border-[var(--rx-border)] rounded-2xl overflow-hidden">
-            <div className="px-[22px] pt-[18px] pb-4 border-b border-[var(--rx-border-subtle)] flex items-center gap-[10px]">
-              <Link href="/orders" className="flex items-center gap-[10px] group">
+          <Link href="/orders" className="block group">
+            <section className="bg-[var(--rx-surface)] border border-[var(--rx-border)] rounded-2xl overflow-hidden transition-all group-hover:shadow-[0_6px_22px_-10px_rgba(15,23,41,0.22)] group-hover:border-[var(--rx-text-faint)]">
+              <div className="px-[22px] pt-[18px] pb-4 border-b border-[var(--rx-border-subtle)] flex items-center gap-[10px]">
                 <div className="w-[30px] h-[30px] rounded-[8px] bg-[var(--rx-sb-active-bg)] flex items-center justify-center">
                   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#3b6fd4" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M3 3v18h18"/><path d="m7 14 3-4 3 2 4-6"/>
@@ -197,39 +198,38 @@ export default async function DashboardPage() {
                   <h2 className="text-[15px] font-semibold text-[var(--rx-text-strong)] tracking-tight m-0 group-hover:text-[#3b6fd4] transition-colors">Recent Orders</h2>
                   <p className="text-[12px] text-[var(--rx-text-muted)] mt-0.5 m-0">Latest activity</p>
                 </div>
-              </Link>
-            </div>
+              </div>
 
-            <div className="px-2 py-2">
-              {recentOrders.length === 0 ? (
-                <p className="text-[13px] text-[var(--rx-text-muted)] px-4 py-6 text-center">No orders yet.</p>
-              ) : (
-                recentOrders.map((o) => {
-                  const s = STATUS_STYLES[o.status] ?? STATUS_STYLES.PENDING;
-                  const customer = o.company?.name ?? (o.contact ? `${o.contact.firstName} ${o.contact.lastName}` : "Unknown");
-                  return (
-                    <Link key={o.id} href={`/orders/${o.id}`} className="flex items-center gap-3 px-[14px] py-[13px] rounded-[11px] hover:bg-[var(--rx-border-subtle)] transition-colors">
-                      <div className="flex-1 min-w-0">
-                        <div className="text-[13px] font-semibold text-[var(--rx-text-body)]" style={{ fontFamily: "var(--font-dm-mono), monospace" }}>
-                          {o.orderNumber}
+              <div className="px-2 py-2">
+                {recentOrders.length === 0 ? (
+                  <p className="text-[13px] text-[var(--rx-text-muted)] px-4 py-6 text-center">No orders yet.</p>
+                ) : (
+                  recentOrders.map((o) => {
+                    const s = STATUS_STYLES[o.status] ?? STATUS_STYLES.PENDING;
+                    const customer = o.company?.name ?? (o.contact ? `${o.contact.firstName} ${o.contact.lastName}` : "Unknown");
+                    return (
+                      <div key={o.id} className="flex items-center gap-3 px-[14px] py-[13px] rounded-[11px] hover:bg-[var(--rx-border-subtle)] transition-colors">
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[13px] font-semibold text-[var(--rx-text-body)]" style={{ fontFamily: "var(--font-dm-mono), monospace" }}>
+                            {o.orderNumber}
+                          </div>
+                          <div className="mt-0.5 text-[12px] text-[var(--rx-text-muted)] truncate">{customer}</div>
                         </div>
-                        <div className="mt-0.5 text-[12px] text-[var(--rx-text-muted)] truncate">{customer}</div>
+                        <div className="flex flex-col items-end gap-1.5 shrink-0">
+                          <span className="px-[9px] py-[3px] rounded-full text-[10.5px] font-bold tracking-wide" style={{ background: s.bg, color: s.text }}>
+                            {o.status}
+                          </span>
+                          <span className="text-[12.5px] font-semibold text-[var(--rx-text-body)]" style={{ fontFamily: "var(--font-dm-mono), monospace" }}>
+                            ${Number(o.totalAmount).toFixed(2)}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex flex-col items-end gap-1.5 shrink-0">
-                        <span className="px-[9px] py-[3px] rounded-full text-[10.5px] font-bold tracking-wide" style={{ background: s.bg, color: s.text }}>
-                          {o.status}
-                        </span>
-                        <span className="text-[12.5px] font-semibold text-[var(--rx-text-body)]" style={{ fontFamily: "var(--font-dm-mono), monospace" }}>
-                          ${Number(o.totalAmount).toFixed(2)}
-                        </span>
-                      </div>
-                    </Link>
-                  );
-                })
-              )}
-            </div>
-
-          </section>
+                    );
+                  })
+                )}
+              </div>
+            </section>
+          </Link>
         </div>
       </div>
     </div>
