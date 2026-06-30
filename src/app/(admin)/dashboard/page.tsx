@@ -49,7 +49,7 @@ export default async function DashboardPage() {
   const { orders, contacts, companies, expiringBatches, recentOrders } = await getStats();
   const now = new Date();
 
-  const todayLabel = now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+  const todayLabel = `${now.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })} (${now.toLocaleDateString("en-US", { weekday: "long" })})`;
 
   return (
     <div className="flex flex-col min-h-full">
@@ -58,7 +58,7 @@ export default async function DashboardPage() {
       <header className="sticky top-0 z-10 flex items-center justify-between px-8 py-[22px] bg-[var(--rx-surface)]/80 backdrop-blur-sm border-b border-[var(--rx-border)]">
         <div>
           <h1 className="text-[21px] font-bold tracking-tight text-[var(--rx-text-strong)] m-0">Dashboard</h1>
-          <p className="text-[13px] text-[var(--rx-text-secondary)] mt-0.5">{todayLabel} · Overview of inventory &amp; orders</p>
+          <p className="text-[13px] text-[var(--rx-text-secondary)] mt-0.5">{todayLabel}</p>
         </div>
       </header>
 
