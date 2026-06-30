@@ -37,19 +37,43 @@ function getPlaceholder(country: CountryCode): string {
   } catch { return "Phone number"; }
 }
 
+function hasTrunkPrefix(country: CountryCode): boolean {
+  try { return getExampleNumber(country, phoneExamples)?.formatNational().startsWith("0") ?? false; }
+  catch { return false; }
+}
+
 function formatPhoneInput(rawInput: string, country: CountryCode): string {
   try {
-    const ex = getExampleNumber(country, phoneExamples);
-    const hasTrunk = ex?.formatNational().startsWith("0") ?? false;
-    if (hasTrunk) {
-      const digits = rawInput.replace(/\D/g, "");
-      if (!digits) return "";
+    const digits = rawInput.replace(/\D/g, "");
+    if (!digits) return "";
+    if (hasTrunkPrefix(country)) {
       const prefixed = digits.startsWith("0") ? digits : "0" + digits;
       const formatted = new AsYouType(country).input(prefixed);
-      return formatted.startsWith("0") ? formatted.slice(1).replace(/^\s+/, "") : formatted;
+      return formatted.startsWith("0") ? formatted.slice(1).trimStart() : formatted;
     }
-    return new AsYouType(country).input(rawInput);
+    return new AsYouType(country).input(digits);
   } catch { return rawInput; }
+}
+
+function validatePhone(phoneInput: string, country: CountryCode): boolean {
+  try {
+    const digits = phoneInput.replace(/\D/g, "");
+    if (!digits) return false;
+    if (hasTrunkPrefix(country)) {
+      const prefixed = digits.startsWith("0") ? digits : "0" + digits;
+      return isValidPhoneNumber(prefixed, country);
+    }
+    return isValidPhoneNumber(phoneInput, country);
+  } catch { return false; }
+}
+
+function parseToE164(phoneInput: string, country: CountryCode): string {
+  try {
+    const digits = phoneInput.replace(/\D/g, "");
+    const toParse = hasTrunkPrefix(country) && !digits.startsWith("0") ? "0" + digits : phoneInput;
+    const parsed = parsePhoneNumber(toParse, country);
+    return parsed?.formatInternational() ?? `+${getCountryCallingCode(country)} ${digits}`;
+  } catch { return `+${getCountryCallingCode(country)} ${phoneInput.replace(/\D/g, "")}`; }
 }
 
 interface Contact {
@@ -108,7 +132,7 @@ export default function ContactFormDialog({ children, contact, companies }: Prop
     const formatted = formatPhoneInput(value, country);
     setPhoneInput(formatted);
     if (phoneTouched && formatted) {
-      setPhoneError(isValidPhoneNumber(formatted, country) ? "" : `Invalid format. Example: ${getPlaceholder(country)}`);
+      setPhoneError(validatePhone(formatted, country) ? "" : `Invalid format. Example: ${getPlaceholder(country)}`);
     } else {
       setPhoneError("");
     }
@@ -117,7 +141,7 @@ export default function ContactFormDialog({ children, contact, companies }: Prop
   function handlePhoneBlur() {
     setPhoneTouched(true);
     if (!phoneInput) { setPhoneError(""); return; }
-    setPhoneError(isValidPhoneNumber(phoneInput, country) ? "" : `Invalid format. Example: ${getPlaceholder(country)}`);
+    setPhoneError(validatePhone(phoneInput, country) ? "" : `Invalid format. Example: ${getPlaceholder(country)}`);
   }
 
   function handleCountryChange(code: CountryCode) {
@@ -130,7 +154,7 @@ export default function ContactFormDialog({ children, contact, companies }: Prop
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
-    if (phoneInput.trim() && !isValidPhoneNumber(phoneInput, country)) {
+    if (phoneInput.trim() && !validatePhone(phoneInput, country)) {
       setPhoneTouched(true);
       setPhoneError(`Invalid format. Example: ${getPlaceholder(country)}`);
       toast.error("Please enter a valid phone number");
@@ -153,8 +177,7 @@ export default function ContactFormDialog({ children, contact, companies }: Prop
 
     // Phone is controlled — always send (null = no phone)
     if (phoneInput.trim()) {
-      const parsed = parsePhoneNumber(phoneInput, country);
-      data.phone = parsed?.formatInternational() ?? `+${getCountryCallingCode(country)} ${phoneInput.replace(/\D/g, "")}`;
+      data.phone = parseToE164(phoneInput, country);
     } else {
       data.phone = null;
     }

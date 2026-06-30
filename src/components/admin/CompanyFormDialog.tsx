@@ -39,19 +39,43 @@ function getPlaceholder(country: CountryCode): string {
   } catch { return "Phone number"; }
 }
 
+function hasTrunkPrefix(country: CountryCode): boolean {
+  try { return getExampleNumber(country, phoneExamples)?.formatNational().startsWith("0") ?? false; }
+  catch { return false; }
+}
+
 function formatPhoneInput(rawInput: string, country: CountryCode): string {
   try {
-    const ex = getExampleNumber(country, phoneExamples);
-    const hasTrunk = ex?.formatNational().startsWith("0") ?? false;
-    if (hasTrunk) {
-      const digits = rawInput.replace(/\D/g, "");
-      if (!digits) return "";
+    const digits = rawInput.replace(/\D/g, "");
+    if (!digits) return "";
+    if (hasTrunkPrefix(country)) {
       const prefixed = digits.startsWith("0") ? digits : "0" + digits;
       const formatted = new AsYouType(country).input(prefixed);
-      return formatted.startsWith("0") ? formatted.slice(1).replace(/^\s+/, "") : formatted;
+      return formatted.startsWith("0") ? formatted.slice(1).trimStart() : formatted;
     }
-    return new AsYouType(country).input(rawInput);
+    return new AsYouType(country).input(digits);
   } catch { return rawInput; }
+}
+
+function validatePhone(phoneInput: string, country: CountryCode): boolean {
+  try {
+    const digits = phoneInput.replace(/\D/g, "");
+    if (!digits) return false;
+    if (hasTrunkPrefix(country)) {
+      const prefixed = digits.startsWith("0") ? digits : "0" + digits;
+      return isValidPhoneNumber(prefixed, country);
+    }
+    return isValidPhoneNumber(phoneInput, country);
+  } catch { return false; }
+}
+
+function parseToE164(phoneInput: string, country: CountryCode): string {
+  try {
+    const digits = phoneInput.replace(/\D/g, "");
+    const toParse = hasTrunkPrefix(country) && !digits.startsWith("0") ? "0" + digits : phoneInput;
+    const parsed = parsePhoneNumber(toParse, country);
+    return parsed?.formatInternational() ?? `+${getCountryCallingCode(country)} ${digits}`;
+  } catch { return `+${getCountryCallingCode(country)} ${phoneInput.replace(/\D/g, "")}`; }
 }
 
 // ── Location data ──────────────────────────────────────────────────────────────
@@ -206,7 +230,7 @@ export default function CompanyFormDialog({ children, company }: Props) {
     const formatted = formatPhoneInput(value, phoneCountry);
     setPhoneInput(formatted);
     if (phoneTouched && formatted) {
-      setPhoneError(isValidPhoneNumber(formatted, phoneCountry) ? "" : `Invalid format. Example: ${getPlaceholder(phoneCountry)}`);
+      setPhoneError(validatePhone(formatted, phoneCountry) ? "" : `Invalid format. Example: ${getPlaceholder(phoneCountry)}`);
     } else {
       setPhoneError("");
     }
@@ -215,7 +239,7 @@ export default function CompanyFormDialog({ children, company }: Props) {
   function handlePhoneBlur() {
     setPhoneTouched(true);
     if (!phoneInput) { setPhoneError(""); return; }
-    setPhoneError(isValidPhoneNumber(phoneInput, phoneCountry) ? "" : `Invalid format. Example: ${getPlaceholder(phoneCountry)}`);
+    setPhoneError(validatePhone(phoneInput, phoneCountry) ? "" : `Invalid format. Example: ${getPlaceholder(phoneCountry)}`);
   }
 
   function handlePhoneCountryChange(code: CountryCode) {
@@ -228,7 +252,7 @@ export default function CompanyFormDialog({ children, company }: Props) {
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
-    if (phoneInput.trim() && !isValidPhoneNumber(phoneInput, phoneCountry)) {
+    if (phoneInput.trim() && !validatePhone(phoneInput, phoneCountry)) {
       setPhoneTouched(true);
       setPhoneError(`Invalid format. Example: ${getPlaceholder(phoneCountry)}`);
       toast.error("Please enter a valid phone number");
@@ -247,8 +271,7 @@ export default function CompanyFormDialog({ children, company }: Props) {
 
     // Phone (controlled)
     if (phoneInput.trim()) {
-      const parsed = parsePhoneNumber(phoneInput, phoneCountry);
-      data.phone = parsed?.formatInternational() ?? `+${getCountryCallingCode(phoneCountry)} ${phoneInput.replace(/\D/g, "")}`;
+      data.phone = parseToE164(phoneInput, phoneCountry);
     } else {
       data.phone = null;
     }
