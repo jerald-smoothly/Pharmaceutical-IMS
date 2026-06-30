@@ -262,7 +262,7 @@ export default function UsersPage() {
                 <th className="px-4 py-3 text-center font-medium text-[var(--rx-text-secondary)]">Company</th>
                 <th className="px-4 py-3 text-center font-medium text-[var(--rx-text-secondary)]">Role</th>
                 <th className="px-4 py-3 text-center font-medium text-[var(--rx-text-secondary)]">Status</th>
-                <th className="px-4 py-3 text-center font-medium text-[var(--rx-text-secondary)]">Registered</th>
+                <th className="px-4 py-3 text-center font-medium text-[var(--rx-text-secondary)]">Registered Date</th>
                 <th className="w-10"></th>
               </tr>
             </thead>
