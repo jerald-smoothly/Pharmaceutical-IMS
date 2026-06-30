@@ -127,7 +127,6 @@ export default function UsersPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-[var(--rx-text-strong)]">User Management</h1>
-          <p className="text-sm text-[var(--rx-text-secondary)] mt-0.5">Manage staff accounts and approve customer registrations</p>
         </div>
         <button
           onClick={() => setShowCreate(!showCreate)}
