@@ -6,14 +6,6 @@ import Link from "next/link";
 import ContactFormDialog from "@/components/admin/ContactFormDialog";
 import AssignCompanyDialog from "@/components/admin/AssignCompanyDialog";
 
-const statusColors: Record<string, string> = {
-  PENDING: "bg-yellow-100 text-yellow-800",
-  CONFIRMED: "bg-blue-100 text-blue-800",
-  PROCESSING: "bg-purple-100 text-purple-800",
-  SHIPPED: "bg-indigo-100 text-indigo-800",
-  DELIVERED: "bg-green-100 text-green-800",
-  CANCELLED: "bg-red-100 text-red-800",
-};
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -34,7 +26,6 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
         company: { select: { id: true, name: true, industry: true } },
         orders: {
           orderBy: { placedAt: "desc" },
-          include: { items: { select: { quantity: true } } },
         },
       },
     }),
@@ -184,7 +175,7 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <ShoppingCart className="w-4 h-4" />
-                Orders Placed by This Contact
+                Orders Placed
                 {contact.company && (
                   <span className="ml-auto text-xs font-normal text-muted-foreground">
                     Included in{" "}
@@ -197,47 +188,40 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              {contact.orders.length === 0 ? (
-                <p className="text-sm text-muted-foreground px-4 py-6">No orders placed yet.</p>
-              ) : (
-                <table className="w-full text-sm">
-                  <thead className="border-b bg-gray-50">
+              <table className="w-full text-sm">
+                <thead className="border-b bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-2.5 text-center font-medium text-gray-600">Order Number</th>
+                    <th className="px-4 py-2.5 text-center font-medium text-gray-600">Order Date</th>
+                    <th className="px-4 py-2.5 text-center font-medium text-gray-600">Order Placed By</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {contact.orders.length === 0 ? (
                     <tr>
-                      <th className="px-4 py-2.5 text-left font-medium text-gray-600">Order #</th>
-                      <th className="px-4 py-2.5 text-left font-medium text-gray-600">Date</th>
-                      <th className="px-4 py-2.5 text-center font-medium text-gray-600">Items</th>
-                      <th className="px-4 py-2.5 text-right font-medium text-gray-600">Amount</th>
-                      <th className="px-4 py-2.5 text-center font-medium text-gray-600">Status</th>
+                      <td colSpan={3} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                        No orders placed yet.
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {contact.orders.map((o) => {
-                      const itemQty = o.items.reduce((s, i) => s + i.quantity, 0);
-                      return (
-                        <tr key={o.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-3">
-                            <Link href={`/orders/${o.id}`} className="font-medium text-blue-600 hover:underline">
-                              {o.orderNumber}
-                            </Link>
-                          </td>
-                          <td className="px-4 py-3 text-muted-foreground">
-                            {new Date(o.placedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                          </td>
-                          <td className="px-4 py-3 text-center text-muted-foreground">{itemQty}</td>
-                          <td className="px-4 py-3 text-right font-medium">
-                            ${Number(o.totalAmount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[o.status] ?? "bg-gray-100 text-gray-700"}`}>
-                              {o.status}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              )}
+                  ) : (
+                    contact.orders.map((o) => (
+                      <tr key={o.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 text-center">
+                          <Link href={`/orders/${o.id}`} className="font-mono text-xs font-semibold text-blue-600 hover:underline">
+                            {o.orderNumber}
+                          </Link>
+                        </td>
+                        <td className="px-4 py-3 text-center text-muted-foreground">
+                          {new Date(o.placedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          {contact.firstName} {contact.lastName}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </CardContent>
           </Card>
         </div>
