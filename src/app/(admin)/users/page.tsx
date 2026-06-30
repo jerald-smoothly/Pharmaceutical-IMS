@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "sonner";
-import { UserPlus, CheckCircle, Ban, RefreshCw, Building2 } from "lucide-react";
+import { UserPlus, CheckCircle, Ban, RefreshCw, Building2, KeyRound } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type UserStatus = "PENDING" | "ACTIVE" | "SUSPENDED";
@@ -37,7 +37,15 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [staffPwError, setStaffPwError] = useState<string | null>(null);
   const [acting, setActing] = useState<string | null>(null);
+  const [changePwUser, setChangePwUser] = useState<{ id: string; name: string } | null>(null);
+  const [savingPw, setSavingPw] = useState(false);
+  const [pwError, setPwError] = useState<string | null>(null);
+  const staffPwRef = useRef<HTMLInputElement>(null);
+  const staffConfirmRef = useRef<HTMLInputElement>(null);
+  const newPwRef = useRef<HTMLInputElement>(null);
+  const confirmPwRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -63,6 +71,10 @@ export default function UsersPage() {
 
   async function createStaff(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const pw = staffPwRef.current?.value ?? "";
+    const confirm = staffConfirmRef.current?.value ?? "";
+    if (pw !== confirm) { setStaffPwError("Passwords do not match"); return; }
+    setStaffPwError(null);
     setCreating(true);
     const fd = new FormData(e.currentTarget);
     const res = await fetch("/api/users", {
@@ -72,7 +84,7 @@ export default function UsersPage() {
         firstName: fd.get("firstName"),
         lastName: fd.get("lastName"),
         email: fd.get("email"),
-        password: fd.get("password"),
+        password: pw,
         role: fd.get("role"),
       }),
     });
@@ -86,6 +98,26 @@ export default function UsersPage() {
     setShowCreate(false);
     load();
     (e.target as HTMLFormElement).reset();
+  }
+
+  async function changePassword(id: string) {
+    const newPw = newPwRef.current?.value ?? "";
+    const confirmPw = confirmPwRef.current?.value ?? "";
+    if (newPw.length < 8) { setPwError("Password must be at least 8 characters"); return; }
+    if (newPw !== confirmPw) { setPwError("Passwords do not match"); return; }
+    setSavingPw(true);
+    const res = await fetch(`/api/users/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: newPw }),
+    });
+    setSavingPw(false);
+    if (!res.ok) { const err = await res.json(); setPwError(err.error ?? "Failed to update password"); return; }
+    toast.success("Password updated");
+    setChangePwUser(null);
+    setPwError(null);
+    if (newPwRef.current) newPwRef.current.value = "";
+    if (confirmPwRef.current) confirmPwRef.current.value = "";
   }
 
   const displayed = users.filter((u) => u.role !== "CUSTOMER");
@@ -147,7 +179,28 @@ export default function UsersPage() {
               </div>
               <div>
                 <label className="text-sm font-medium text-[var(--rx-text-body)] block mb-1">Temporary Password</label>
-                <input name="password" type="password" required minLength={8} placeholder="Min 8 characters" className={inputClass} />
+                <input
+                  ref={staffPwRef}
+                  name="password"
+                  type="password"
+                  required
+                  minLength={8}
+                  placeholder="Min 8 characters"
+                  className={inputClass}
+                  onChange={() => setStaffPwError(null)}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-[var(--rx-text-body)] block mb-1">Confirm Password</label>
+                <input
+                  ref={staffConfirmRef}
+                  type="password"
+                  required
+                  placeholder="Re-enter password"
+                  className={inputClass}
+                  onChange={() => setStaffPwError(null)}
+                />
+                {staffPwError && <p className="text-xs text-red-500 mt-1">{staffPwError}</p>}
               </div>
               <div>
                 <label className="text-sm font-medium text-[var(--rx-text-body)] block mb-1">Role</label>
@@ -180,9 +233,9 @@ export default function UsersPage() {
           <table className="w-full text-sm">
             <thead className="border-b border-[var(--rx-border)] bg-[var(--rx-border-subtle)]">
               <tr>
-                <th className="px-4 py-3 text-left font-medium text-[var(--rx-text-secondary)]">First Name</th>
-                <th className="px-4 py-3 text-left font-medium text-[var(--rx-text-secondary)]">Last Name</th>
-                <th className="px-4 py-3 text-left font-medium text-[var(--rx-text-secondary)]">Email Address</th>
+                <th className="px-4 py-3 text-center font-medium text-[var(--rx-text-secondary)]">First Name</th>
+                <th className="px-4 py-3 text-center font-medium text-[var(--rx-text-secondary)]">Last Name</th>
+                <th className="px-4 py-3 text-center font-medium text-[var(--rx-text-secondary)]">Email Address</th>
                 <th className="px-4 py-3 text-center font-medium text-[var(--rx-text-secondary)]">Company</th>
                 <th className="px-4 py-3 text-center font-medium text-[var(--rx-text-secondary)]">Role</th>
                 <th className="px-4 py-3 text-center font-medium text-[var(--rx-text-secondary)]">Status</th>
@@ -193,13 +246,13 @@ export default function UsersPage() {
             <tbody className="divide-y divide-[var(--rx-border)]">
               {displayed.map((u) => (
                 <tr key={u.id} className="hover:bg-[var(--rx-border-subtle)] transition-colors">
-                  <td className="px-4 py-3 text-left font-medium text-[var(--rx-text-body)]">
+                  <td className="px-4 py-3 text-center font-medium text-[var(--rx-text-body)]">
                     {u.contact?.firstName ?? (u.name ? u.name.split(" ")[0] : "—")}
                   </td>
-                  <td className="px-4 py-3 text-left text-[var(--rx-text-body)]">
+                  <td className="px-4 py-3 text-center text-[var(--rx-text-body)]">
                     {u.contact?.lastName ?? (u.name ? u.name.split(" ").slice(1).join(" ") || "—" : "—")}
                   </td>
-                  <td className="px-4 py-3 text-left text-[var(--rx-text-muted)]">
+                  <td className="px-4 py-3 text-center text-[var(--rx-text-muted)]">
                     {u.email}
                   </td>
                   <td className="px-4 py-3 text-center">
@@ -249,12 +302,67 @@ export default function UsersPage() {
                           <RefreshCw className="w-3 h-3" /> Reactivate
                         </button>
                       )}
+                      <button
+                        onClick={() => { setChangePwUser({ id: u.id, name: u.contact?.firstName ?? u.name ?? u.email }); setPwError(null); }}
+                        className="inline-flex items-center gap-1 h-7 px-3 rounded-lg text-xs font-medium border border-[var(--rx-border)] text-[var(--rx-text-body)] hover:bg-[var(--rx-border-subtle)] transition-all"
+                      >
+                        <KeyRound className="w-3 h-3" /> Change Password
+                      </button>
                     </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {changePwUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-[var(--rx-surface)] rounded-xl border border-[var(--rx-border)] p-6 w-full max-w-sm shadow-xl">
+            <h2 className="text-base font-semibold text-[var(--rx-text-strong)] mb-1">Change Password</h2>
+            <p className="text-sm text-[var(--rx-text-secondary)] mb-4">
+              Set a new password for <span className="font-medium text-[var(--rx-text-strong)]">{changePwUser.name}</span>
+            </p>
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm font-medium text-[var(--rx-text-body)] block mb-1">New Password</label>
+                <input
+                  ref={newPwRef}
+                  type="password"
+                  placeholder="Min 8 characters"
+                  className={inputClass}
+                  onChange={() => setPwError(null)}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-[var(--rx-text-body)] block mb-1">Confirm Password</label>
+                <input
+                  ref={confirmPwRef}
+                  type="password"
+                  placeholder="Re-enter password"
+                  className={inputClass}
+                  onChange={() => setPwError(null)}
+                />
+                {pwError && <p className="text-xs text-red-500 mt-1">{pwError}</p>}
+              </div>
+            </div>
+            <div className="flex gap-3 mt-5">
+              <button
+                onClick={() => changePassword(changePwUser.id)}
+                disabled={savingPw}
+                className="h-9 px-4 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-all"
+              >
+                {savingPw ? "Saving..." : "Update Password"}
+              </button>
+              <button
+                onClick={() => { setChangePwUser(null); setPwError(null); if (newPwRef.current) newPwRef.current.value = ""; if (confirmPwRef.current) confirmPwRef.current.value = ""; }}
+                className="h-9 px-4 rounded-lg text-sm font-medium border border-[var(--rx-border)] text-[var(--rx-text-body)] hover:bg-[var(--rx-border-subtle)] transition-all"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
