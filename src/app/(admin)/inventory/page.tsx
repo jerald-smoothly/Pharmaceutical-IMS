@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Upload, Package } from "lucide-react";
 
 async function getProducts(search: string, page: number) {
@@ -18,7 +19,7 @@ async function getProducts(search: string, page: number) {
     : { isActive: true };
 
   const now = new Date();
-  const [products, total] = await Promise.all([
+  const [products, total, totalActive] = await Promise.all([
     prisma.product.findMany({
       where,
       include: {
@@ -32,6 +33,7 @@ async function getProducts(search: string, page: number) {
       take: limit,
     }),
     prisma.product.count({ where }),
+    prisma.product.count({ where: { isActive: true } }),
   ]);
 
   return {
@@ -40,6 +42,7 @@ async function getProducts(search: string, page: number) {
       stock: p.batches.reduce((s, b) => s + b.quantityIn - b.quantityOut - b.quantityOnHold, 0),
     })),
     total,
+    totalActive,
     pages: Math.ceil(total / limit),
   };
 }
@@ -52,7 +55,7 @@ export default async function InventoryPage({ searchParams }: Props) {
   const params = await searchParams;
   const search = params.search ?? "";
   const page = parseInt(params.page ?? "1");
-  const { products, total, pages } = await getProducts(search, page);
+  const { products, total, pages, totalActive } = await getProducts(search, page);
 
   return (
     <div className="space-y-6">
@@ -68,6 +71,20 @@ export default async function InventoryPage({ searchParams }: Props) {
           <Upload className="w-4 h-4" />
           Import Stock
         </Link>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Products</p>
+                <p className="text-3xl font-bold mt-1">{totalActive}</p>
+              </div>
+              <Package className="w-8 h-8 text-blue-600" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <form className="flex gap-3">

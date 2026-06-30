@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, ShoppingCart, Users, Building2, TrendingUp, AlertTriangle, Code2 } from "lucide-react";
+import { ShoppingCart, Users, Building2, TrendingUp, AlertTriangle, Code2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { headers } from "next/headers";
 import EmbedSnippet from "@/components/admin/EmbedSnippet";
@@ -16,9 +16,8 @@ async function getStats() {
   const now = new Date();
   const thirtyDaysOut = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
-  const [products, orders, contacts, companies, expiringBatches, recentOrders] =
+  const [orders, contacts, companies, expiringBatches, recentOrders] =
     await Promise.all([
-      prisma.product.count({ where: { isActive: true } }),
       prisma.order.count(),
       prisma.contact.count({ where: { isActive: true } }),
       prisma.company.count({ where: { isActive: true } }),
@@ -35,7 +34,7 @@ async function getStats() {
       }),
     ]);
 
-  return { products, orders, contacts, companies, expiringBatches, recentOrders };
+  return { orders, contacts, companies, expiringBatches, recentOrders };
 }
 
 const statusColors: Record<string, string> = {
@@ -48,7 +47,7 @@ const statusColors: Record<string, string> = {
 };
 
 export default async function DashboardPage() {
-  const [{ products, orders, contacts, companies, expiringBatches, recentOrders }, origin] =
+  const [{ orders, contacts, companies, expiringBatches, recentOrders }, origin] =
     await Promise.all([getStats(), getOrigin()]);
 
   return (
@@ -58,9 +57,8 @@ export default async function DashboardPage() {
         <p className="text-muted-foreground">Overview of your pharmaceutical inventory and orders</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[
-          { label: "Products", value: products, icon: Package, color: "text-blue-600" },
           { label: "Total Orders", value: orders, icon: ShoppingCart, color: "text-green-600" },
           { label: "Contacts", value: contacts, icon: Users, color: "text-purple-600" },
           { label: "Companies", value: companies, icon: Building2, color: "text-orange-600" },
