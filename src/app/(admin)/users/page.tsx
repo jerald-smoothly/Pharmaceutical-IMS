@@ -15,7 +15,7 @@ interface User {
   role: UserRole;
   status: UserStatus;
   createdAt: string;
-  contact: { companyId: string | null; company: { name: string } | null } | null;
+  contact: { firstName: string | null; lastName: string | null; companyId: string | null; company: { name: string } | null } | null;
 }
 
 const statusBadge: Record<UserStatus, string> = {
@@ -153,7 +153,9 @@ export default function UsersPage() {
           <table className="w-full text-sm">
             <thead className="border-b border-[var(--rx-border)] bg-[var(--rx-border-subtle)]">
               <tr>
-                <th className="px-4 py-3 text-center font-medium text-[var(--rx-text-secondary)]">User</th>
+                <th className="px-4 py-3 text-left font-medium text-[var(--rx-text-secondary)]">First Name</th>
+                <th className="px-4 py-3 text-left font-medium text-[var(--rx-text-secondary)]">Last Name</th>
+                <th className="px-4 py-3 text-left font-medium text-[var(--rx-text-secondary)]">Email Address</th>
                 <th className="px-4 py-3 text-center font-medium text-[var(--rx-text-secondary)]">Company</th>
                 <th className="px-4 py-3 text-center font-medium text-[var(--rx-text-secondary)]">Role</th>
                 <th className="px-4 py-3 text-center font-medium text-[var(--rx-text-secondary)]">Status</th>
@@ -164,9 +166,14 @@ export default function UsersPage() {
             <tbody className="divide-y divide-[var(--rx-border)]">
               {displayed.map((u) => (
                 <tr key={u.id} className="hover:bg-[var(--rx-border-subtle)] transition-colors">
-                  <td className="px-4 py-3 text-center">
-                    <p className="font-medium text-[var(--rx-text-body)]">{u.name ?? "—"}</p>
-                    <p className="text-xs text-[var(--rx-text-muted)]">{u.email}</p>
+                  <td className="px-4 py-3 text-left font-medium text-[var(--rx-text-body)]">
+                    {u.contact?.firstName ?? (u.name ? u.name.split(" ")[0] : "—")}
+                  </td>
+                  <td className="px-4 py-3 text-left text-[var(--rx-text-body)]">
+                    {u.contact?.lastName ?? (u.name ? u.name.split(" ").slice(1).join(" ") || "—" : "—")}
+                  </td>
+                  <td className="px-4 py-3 text-left text-[var(--rx-text-muted)]">
+                    {u.email}
                   </td>
                   <td className="px-4 py-3 text-center">
                     {u.contact?.company ? (

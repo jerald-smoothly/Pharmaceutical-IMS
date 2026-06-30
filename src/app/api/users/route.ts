@@ -19,7 +19,7 @@ export async function GET() {
       role: true,
       status: true,
       createdAt: true,
-      contact: { select: { companyId: true, company: { select: { name: true } } } },
+      contact: { select: { firstName: true, lastName: true, companyId: true, company: { select: { name: true } } } },
     },
   });
 
