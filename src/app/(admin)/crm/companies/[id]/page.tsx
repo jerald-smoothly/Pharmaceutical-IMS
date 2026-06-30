@@ -7,14 +7,6 @@ import CompanyFormDialog from "@/components/admin/CompanyFormDialog";
 import LinkContactDialog from "@/components/admin/LinkContactDialog";
 import UnlinkContactButton from "@/components/admin/UnlinkContactButton";
 
-const statusColors: Record<string, string> = {
-  PENDING: "bg-yellow-100 text-yellow-800",
-  CONFIRMED: "bg-blue-100 text-blue-800",
-  PROCESSING: "bg-purple-100 text-purple-800",
-  SHIPPED: "bg-indigo-100 text-indigo-800",
-  DELIVERED: "bg-green-100 text-green-800",
-  CANCELLED: "bg-red-100 text-red-800",
-};
 
 export default async function CompanyDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -46,9 +38,8 @@ export default async function CompanyDetailPage({ params }: { params: Promise<{ 
     prisma.order.findMany({
       where: orderWhere,
       orderBy: { placedAt: "desc" },
-      take: 10,
+      distinct: ["id"],
       include: {
-        items: { select: { quantity: true } },
         contact: { select: { id: true, firstName: true, lastName: true } },
       },
     }),
@@ -163,38 +154,55 @@ export default async function CompanyDetailPage({ params }: { params: Promise<{ 
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <ShoppingCart className="w-4 h-4" />
-                Recent Orders ({totalOrderCount})
+                Total Orders ({totalOrderCount})
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
               {combinedOrders.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No orders yet.</p>
+                <p className="text-sm text-muted-foreground px-4 py-6">No orders yet.</p>
               ) : (
-                <div className="space-y-2">
-                  {combinedOrders.map((o) => (
-                    <div key={o.id} className="flex items-center justify-between py-2 border-b last:border-0 text-sm">
-                      <div>
-                        <Link href={`/orders/${o.id}`} className="font-medium hover:text-blue-600">{o.orderNumber}</Link>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(o.placedAt).toLocaleDateString()}
-                          {o.contact && (
-                            <> · by{" "}
-                              <Link href={`/crm/contacts/${o.contact.id}`} className="hover:text-foreground">
-                                {o.contact.firstName} {o.contact.lastName}
-                              </Link>
-                            </>
+                <table className="w-full text-sm">
+                  <thead className="border-b bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-center font-medium text-gray-600">Order Number</th>
+                      <th className="px-4 py-3 text-center font-medium text-gray-600">Order Date</th>
+                      <th className="px-4 py-3 text-center font-medium text-gray-600">Order Placed By</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {combinedOrders.map((o) => (
+                      <tr key={o.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 text-center">
+                          <Link
+                            href={`/orders/${o.id}`}
+                            className="font-mono text-xs font-semibold text-blue-600 hover:underline"
+                          >
+                            {o.orderNumber}
+                          </Link>
+                        </td>
+                        <td className="px-4 py-3 text-center text-muted-foreground">
+                          {new Date(o.placedAt).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          {o.contact ? (
+                            <Link
+                              href={`/crm/contacts/${o.contact.id}`}
+                              className="text-blue-600 hover:underline"
+                            >
+                              {o.contact.firstName} {o.contact.lastName}
+                            </Link>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
                           )}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-muted-foreground">${Number(o.totalAmount).toFixed(2)}</span>
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[o.status]}`}>
-                          {o.status}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               )}
             </CardContent>
           </Card>
