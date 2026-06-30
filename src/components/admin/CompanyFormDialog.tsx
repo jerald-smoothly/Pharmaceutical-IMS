@@ -14,6 +14,7 @@ import {
   type CountryCode,
 } from "libphonenumber-js";
 import { Country, State, City } from "country-state-city";
+import { PH_CITIES } from "@/data/ph-cities";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const phoneExamples = require("libphonenumber-js/examples.mobile.json");
 
@@ -127,7 +128,15 @@ export default function CompanyFormDialog({ children, company }: Props) {
   const cityReady = !!selectedCountry && (stateOptions.length === 0 || !!selectedState);
   const cityOptions = (() => {
     if (!cityReady) return [];
-    if (stateOptions.length > 0) return City.getCitiesOfState(selectedCountry, selectedState);
+    if (stateOptions.length > 0) {
+      const fromPkg = City.getCitiesOfState(selectedCountry, selectedState);
+      if (fromPkg.length > 0) return fromPkg;
+      // Supplement missing PH province data
+      if (selectedCountry === "PH" && PH_CITIES[selectedState]) {
+        return PH_CITIES[selectedState].map((name) => ({ name, stateCode: selectedState, countryCode: "PH", latitude: "", longitude: "" }));
+      }
+      return fromPkg;
+    }
     return City.getCitiesOfCountry(selectedCountry) ?? [];
   })();
 
