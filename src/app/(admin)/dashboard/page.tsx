@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShoppingCart, Users, Building2, TrendingUp, AlertTriangle } from "lucide-react";
@@ -49,21 +50,23 @@ export default async function DashboardPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[
-          { label: "Total Orders", value: orders, icon: ShoppingCart, color: "text-green-600" },
-          { label: "Contacts", value: contacts, icon: Users, color: "text-purple-600" },
-          { label: "Companies", value: companies, icon: Building2, color: "text-orange-600" },
-        ].map(({ label, value, icon: Icon, color }) => (
-          <Card key={label}>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">{label}</p>
-                  <p className="text-3xl font-bold mt-1">{value}</p>
+          { label: "Total Orders", value: orders, icon: ShoppingCart, color: "text-green-600", href: "/orders" },
+          { label: "Contacts", value: contacts, icon: Users, color: "text-purple-600", href: "/crm/contacts" },
+          { label: "Companies", value: companies, icon: Building2, color: "text-orange-600", href: "/crm/companies" },
+        ].map(({ label, value, icon: Icon, color, href }) => (
+          <Link key={label} href={href} className="block group">
+            <Card className="transition-shadow group-hover:shadow-md group-hover:border-blue-200">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">{label}</p>
+                    <p className="text-3xl font-bold mt-1 group-hover:text-blue-600 transition-colors">{value}</p>
+                  </div>
+                  <Icon className={`w-8 h-8 ${color}`} />
                 </div>
-                <Icon className={`w-8 h-8 ${color}`} />
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </Link>
         ))}
       </div>
 
