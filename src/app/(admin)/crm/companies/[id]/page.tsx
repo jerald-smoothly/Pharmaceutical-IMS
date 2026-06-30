@@ -1,8 +1,7 @@
 import { prisma } from "@/lib/db";
 import { notFound } from "next/navigation";
-import { Building2, Mail, Phone, Globe, MapPin, FileText, Users, ShoppingCart } from "lucide-react";
+import { Mail, Phone, Globe, MapPin, FileText, Users, ShoppingCart } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import CompanyFormDialog from "@/components/admin/CompanyFormDialog";
 import LinkContactDialog from "@/components/admin/LinkContactDialog";
@@ -20,17 +19,20 @@ const statusColors: Record<string, string> = {
 export default async function CompanyDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  const [company, availableContacts] = await Promise.all([
+  // Combined order filter: direct company orders + orders placed by this company's contacts
+  const orderWhere = {
+    OR: [
+      { companyId: id },
+      { contact: { companyId: id } },
+    ],
+  } as const;
+
+  const [company, availableContacts, combinedOrders, totalOrderCount] = await Promise.all([
     prisma.company.findUnique({
       where: { id },
       include: {
         contacts: { where: { isActive: true }, orderBy: { firstName: "asc" } },
-        orders: {
-          orderBy: { placedAt: "desc" },
-          take: 10,
-          include: { items: { select: { quantity: true } } },
-        },
-        _count: { select: { contacts: true, orders: true } },
+        _count: { select: { contacts: true } },
       },
     }),
     prisma.contact.findMany({
@@ -41,6 +43,16 @@ export default async function CompanyDetailPage({ params }: { params: Promise<{ 
       select: { id: true, firstName: true, lastName: true, email: true, company: { select: { name: true } } },
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
     }),
+    prisma.order.findMany({
+      where: orderWhere,
+      orderBy: { placedAt: "desc" },
+      take: 10,
+      include: {
+        items: { select: { quantity: true } },
+        contact: { select: { id: true, firstName: true, lastName: true } },
+      },
+    }),
+    prisma.order.count({ where: orderWhere }),
   ]);
 
   if (!company) notFound();
@@ -151,19 +163,28 @@ export default async function CompanyDetailPage({ params }: { params: Promise<{ 
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <ShoppingCart className="w-4 h-4" />
-                Recent Orders ({company._count.orders})
+                Recent Orders ({totalOrderCount})
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {company.orders.length === 0 ? (
+              {combinedOrders.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No orders yet.</p>
               ) : (
                 <div className="space-y-2">
-                  {company.orders.map((o) => (
+                  {combinedOrders.map((o) => (
                     <div key={o.id} className="flex items-center justify-between py-2 border-b last:border-0 text-sm">
                       <div>
                         <Link href={`/orders/${o.id}`} className="font-medium hover:text-blue-600">{o.orderNumber}</Link>
-                        <p className="text-xs text-muted-foreground">{new Date(o.placedAt).toLocaleDateString()}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(o.placedAt).toLocaleDateString()}
+                          {o.contact && (
+                            <> · by{" "}
+                              <Link href={`/crm/contacts/${o.contact.id}`} className="hover:text-foreground">
+                                {o.contact.firstName} {o.contact.lastName}
+                              </Link>
+                            </>
+                          )}
+                        </p>
                       </div>
                       <div className="flex items-center gap-3">
                         <span className="text-muted-foreground">${Number(o.totalAmount).toFixed(2)}</span>
