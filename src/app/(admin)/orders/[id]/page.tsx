@@ -27,7 +27,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
   if (!order) notFound();
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="p-8 space-y-6 max-w-4xl">
       <div className="flex items-start justify-between">
         <div>
           <Link href="/orders" className="text-sm text-muted-foreground hover:text-foreground">← Orders</Link>

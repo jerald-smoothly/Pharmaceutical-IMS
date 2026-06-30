@@ -2,34 +2,77 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  LayoutDashboard,
-  Package,
-  Users,
-  Building2,
-  ShoppingCart,
-  LogOut,
-  UserCog,
-  Settings,
-} from "lucide-react";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
-const baseNav = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Inventory", href: "/inventory", icon: Package },
-  { label: "Contacts", href: "/crm/contacts", icon: Users },
-  { label: "Companies", href: "/crm/companies", icon: Building2 },
-  { label: "Orders", href: "/orders", icon: ShoppingCart },
+const workspaceNav = [
+  {
+    label: "Dashboard", href: "/dashboard",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="7" height="9" rx="1.2"/><rect x="14" y="3" width="7" height="5" rx="1.2"/>
+        <rect x="14" y="12" width="7" height="9" rx="1.2"/><rect x="3" y="16" width="7" height="5" rx="1.2"/>
+      </svg>
+    ),
+  },
+  {
+    label: "Inventory", href: "/inventory",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+        <path d="m3.3 7 8.7 5 8.7-5M12 22V12"/>
+      </svg>
+    ),
+  },
+  {
+    label: "Contacts", href: "/crm/contacts",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+        <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13A4 4 0 0 1 16 11"/>
+      </svg>
+    ),
+  },
+  {
+    label: "Companies", href: "/crm/companies",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="4" y="2" width="16" height="20" rx="2"/>
+        <path d="M9 22v-4h6v4M9 6h.01M15 6h.01M9 10h.01M15 10h.01M9 14h.01M15 14h.01"/>
+      </svg>
+    ),
+  },
+  {
+    label: "Orders", href: "/orders",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/>
+        <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
+      </svg>
+    ),
+  },
 ];
 
-const adminOnlyNav = [
-  { label: "Users", href: "/users", icon: UserCog },
-];
-
-const bottomNav = [
-  { label: "Settings", href: "/settings", icon: Settings },
+const adminNav = [
+  {
+    label: "Users", href: "/users",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="9" cy="7" r="3"/><path d="M2 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>
+        <circle cx="19" cy="11" r="2"/><path d="M19 8v1M19 13v1M21.6 9.5l-.87.5M17.27 12l-.87.5M21.6 12.5l-.87-.5M17.27 11l-.87-.5"/>
+      </svg>
+    ),
+    adminOnly: true,
+  },
+  {
+    label: "Settings", href: "/settings",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-2.82 1.17V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 8 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 3.6 14H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 8a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 10 3.6V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 2.82 1.17l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 20.4 10H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    ),
+  },
 ];
 
 interface Props {
@@ -40,8 +83,6 @@ export default function AdminSidebar({ user }: Props) {
   const pathname = usePathname();
   const isAdmin = user.role === "ADMIN";
 
-  const nav = isAdmin ? [...baseNav, ...adminOnlyNav, ...bottomNav] : [...baseNav, ...bottomNav];
-
   const initials = (user.name ?? user.email ?? "U")
     .split(" ")
     .map((w) => w[0])
@@ -49,55 +90,98 @@ export default function AdminSidebar({ user }: Props) {
     .toUpperCase()
     .slice(0, 2);
 
+  function isActive(href: string) {
+    return pathname === href || pathname.startsWith(href + "/");
+  }
+
   return (
-    <aside className="w-64 bg-white border-r flex flex-col">
-      <div className="p-6 border-b">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-            <Package className="w-4 h-4 text-white" />
-          </div>
-          <div>
-            <p className="font-semibold text-sm">RxPharmas</p>
-            <p className="text-xs text-muted-foreground capitalize">
-              {(user.role ?? "staff").toLowerCase()}
-            </p>
+    <aside className="w-64 shrink-0 bg-white border-r border-[#eaecef] flex flex-col h-full">
+      {/* Logo */}
+      <div className="px-5 py-[22px] flex items-center gap-[11px] border-b border-[#eaecef]">
+        <div className="w-[38px] h-[38px] rounded-[11px] bg-[#3b6fd4] flex items-center justify-center shadow-[0_4px_12px_-3px_rgba(59,111,212,0.55)]">
+          <span className="font-mono font-semibold text-[15px] text-white tracking-tight">Rx</span>
+        </div>
+        <div className="leading-tight">
+          <div className="font-semibold text-[15px] text-[#0f1729] tracking-tight">RxPharmas</div>
+          <div className="text-[11.5px] text-[#8a93a3] font-medium">
+            Inventory · {isAdmin ? "Admin" : "Staff"}
           </div>
         </div>
       </div>
 
-      <nav className="flex-1 p-4 space-y-1">
-        {nav.map(({ label, href, icon: Icon }) => (
-          <Link
-            key={href}
-            href={href}
-            className={cn(
-              "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-              pathname === href || pathname.startsWith(href + "/")
-                ? "bg-blue-50 text-blue-700"
-                : "text-gray-600 hover:bg-gray-100"
-            )}
-          >
-            <Icon className="w-4 h-4" />
-            {label}
-          </Link>
-        ))}
+      {/* Nav */}
+      <nav className="flex-1 px-3 py-[14px] flex flex-col gap-0.5 overflow-y-auto">
+        <div className="px-3 py-1.5 text-[10.5px] font-semibold tracking-[0.7px] uppercase text-[#a3abba] mb-1">
+          Workspace
+        </div>
+
+        {workspaceNav.map(({ label, href, icon }) => {
+          const active = isActive(href);
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={cn(
+                "flex items-center gap-[11px] px-3 py-[9px] rounded-[9px] text-[13.5px] font-medium transition-colors",
+                active
+                  ? "bg-[#eef3fd] text-[#3b6fd4] font-semibold"
+                  : "text-[#525c6b] hover:bg-[#f4f5f7]"
+              )}
+            >
+              <span className={active ? "text-[#3b6fd4]" : "text-[#9aa3b2]"}>
+                {icon}
+              </span>
+              {label}
+            </Link>
+          );
+        })}
+
+        <div className="px-3 pt-4 pb-2 text-[10.5px] font-semibold tracking-[0.7px] uppercase text-[#a3abba] mt-1">
+          Administration
+        </div>
+
+        {adminNav
+          .filter((item) => !("adminOnly" in item && item.adminOnly && !isAdmin))
+          .map(({ label, href, icon }) => {
+            const active = isActive(href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={cn(
+                  "flex items-center gap-[11px] px-3 py-[9px] rounded-[9px] text-[13.5px] font-medium transition-colors",
+                  active
+                    ? "bg-[#eef3fd] text-[#3b6fd4] font-semibold"
+                    : "text-[#525c6b] hover:bg-[#f4f5f7]"
+                )}
+              >
+                <span className={active ? "text-[#3b6fd4]" : "text-[#9aa3b2]"}>
+                  {icon}
+                </span>
+                {label}
+              </Link>
+            );
+          })}
       </nav>
 
-      <div className="p-4 border-t">
-        <div className="flex items-center gap-3 mb-3">
-          <Avatar className="w-8 h-8">
-            <AvatarFallback className="text-xs">{initials}</AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">{user.name ?? user.email}</p>
-            <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+      {/* User footer */}
+      <div className="px-3 pb-4 pt-3 border-t border-[#eaecef]">
+        <div className="flex items-center gap-[10px] px-1.5 py-1.5 pb-2.5">
+          <div className="w-[34px] h-[34px] rounded-full bg-[#dde8fa] flex items-center justify-center text-[12.5px] font-semibold text-[#3b6fd4] shrink-0">
+            {initials}
+          </div>
+          <div className="min-w-0">
+            <div className="text-[13px] font-semibold text-[#1a2030] truncate">{user.name ?? user.email}</div>
+            <div className="text-[11.5px] text-[#8a93a3] truncate">{user.email}</div>
           </div>
         </div>
         <button
           onClick={() => signOut({ callbackUrl: "/login" })}
-          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+          className="w-full flex items-center gap-[10px] px-3 py-[9px] rounded-[9px] text-[13px] font-medium text-[#525c6b] hover:bg-[#f4f5f7] transition-colors"
         >
-          <LogOut className="w-4 h-4" />
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#9aa3b2" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
+          </svg>
           Sign out
         </button>
       </div>

@@ -8,10 +8,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!["ADMIN", "STAFF"].includes(session.user.role)) redirect("/catalog");
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-[#f5f6f8]">
       <AdminSidebar user={session.user} />
-      <main className="flex-1 overflow-auto">
-        <div className="p-8">{children}</div>
+      <main className="flex-1 overflow-auto flex flex-col">
+        {children}
       </main>
     </div>
   );
