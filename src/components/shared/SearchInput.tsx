@@ -38,7 +38,7 @@ export default function SearchInput({ placeholder, defaultValue, preserveParams 
       value={value}
       onChange={(e) => { setValue(e.target.value); push(e.target.value); }}
       placeholder={placeholder}
-      className={className ?? "flex-1 border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"}
+      className={className ?? "w-full border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"}
     />
   );
 }
