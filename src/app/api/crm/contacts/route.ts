@@ -63,7 +63,8 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const parsed = createSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+    const first = parsed.error.issues[0];
+    return NextResponse.json({ error: first?.message ?? "Invalid input" }, { status: 400 });
   }
 
   const existing = await prisma.contact.findUnique({ where: { email: parsed.data.email } });

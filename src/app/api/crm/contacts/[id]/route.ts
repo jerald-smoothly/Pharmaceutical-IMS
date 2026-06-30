@@ -7,11 +7,11 @@ const updateSchema = z.object({
   firstName: z.string().min(1).optional(),
   lastName: z.string().min(1).optional(),
   email: z.string().email().optional(),
-  phone: z.string().optional(),
-  title: z.string().optional(),
-  department: z.string().optional(),
+  phone: z.string().nullable().optional(),
+  title: z.string().nullable().optional(),
+  department: z.string().nullable().optional(),
   companyId: z.string().nullable().optional(),
-  notes: z.string().optional(),
+  notes: z.string().nullable().optional(),
   isActive: z.boolean().optional(),
 });
 
@@ -48,7 +48,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const body = await req.json();
   const parsed = updateSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+    const first = parsed.error.issues[0];
+    return NextResponse.json({ error: first?.message ?? "Invalid input" }, { status: 400 });
   }
 
   const contact = await prisma.contact.update({
