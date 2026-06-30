@@ -27,7 +27,7 @@ const schema = z.object({
   firstName: z.string().min(1).regex(/^[A-Za-z]+$/, "First Name must be letters only"),
   lastName: z.string().min(1).regex(/^[A-Za-z][A-Za-z\s-]*$/, "Last Name may only contain letters, spaces, or hyphens"),
   email: z.string().email("Please enter a valid email address"),
-  phone: z.string().min(7, "Please enter a valid phone number"),
+  phone: z.string().min(7, "Please enter a valid phone number").nullable().optional(),
 });
 
 export async function PATCH(req: NextRequest) {

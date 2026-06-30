@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { notFound } from "next/navigation";
-import { Mail, Phone, Briefcase, Hash, FileText, Building2, ShoppingCart } from "lucide-react";
+import { Mail, Phone, Briefcase, Hash, FileText, Building2, ShoppingCart, Globe } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import ContactFormDialog from "@/components/admin/ContactFormDialog";
@@ -13,7 +13,7 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
     prisma.contact.findUnique({
       where: { id },
       include: {
-        company: { select: { id: true, name: true, industry: true } },
+        company: { select: { id: true, name: true, industry: true, email: true, phone: true, website: true } },
         orders: { orderBy: { placedAt: "desc" } },
       },
     }),
@@ -126,14 +126,42 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
             </CardHeader>
             <CardContent>
               {contact.company ? (
-                <Link href={`/crm/companies/${contact.company.id}`} className="group block">
-                  <p className="font-medium text-sm group-hover:text-blue-600 transition-colors">
-                    {contact.company.name}
-                  </p>
-                  {contact.company.industry && (
-                    <p className="text-xs text-muted-foreground mt-0.5">{contact.company.industry}</p>
+                <div>
+                  <Link href={`/crm/companies/${contact.company.id}`} className="group block">
+                    <p className="font-medium text-sm group-hover:text-blue-600 transition-colors">
+                      {contact.company.name}
+                    </p>
+                    {contact.company.industry && (
+                      <p className="text-xs text-muted-foreground mt-0.5">{contact.company.industry}</p>
+                    )}
+                  </Link>
+                  {(contact.company.email || contact.company.phone || contact.company.website) && (
+                    <div className="mt-3 pt-3 border-t space-y-1.5">
+                      {contact.company.email && (
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Mail className="w-3.5 h-3.5 shrink-0" />
+                          <a href={`mailto:${contact.company.email}`} className="hover:text-foreground truncate">
+                            {contact.company.email}
+                          </a>
+                        </div>
+                      )}
+                      {contact.company.phone && (
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Phone className="w-3.5 h-3.5 shrink-0" />
+                          {contact.company.phone}
+                        </div>
+                      )}
+                      {contact.company.website && (
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Globe className="w-3.5 h-3.5 shrink-0" />
+                          <a href={contact.company.website} target="_blank" rel="noreferrer" className="hover:text-foreground truncate">
+                            {contact.company.website}
+                          </a>
+                        </div>
+                      )}
+                    </div>
                   )}
-                </Link>
+                </div>
               ) : (
                 <p className="text-sm text-muted-foreground">No company assigned.</p>
               )}
