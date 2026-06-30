@@ -3,22 +3,14 @@ import { prisma } from "@/lib/db";
 export interface ImportRow {
   sku: string;
   name: string;
-  genericName?: string;
-  manufacturer?: string;
-  category?: string;
-  unit?: string;
-  unitPrice: number;
-  batchNumber: string;
   expiryDate: string;
-  quantity: number;
-  costPrice?: number;
-  supplier?: string;
-  requiresPrescription?: boolean;
+  quantityRaw: string;
 }
 
 export interface ImportResult {
   importedRows: number;
   failedRows: number;
+  skippedRows: number;
   errors: { row: number; message: string }[];
 }
 
@@ -30,6 +22,7 @@ export async function processImport(
   const errors: { row: number; message: string }[] = [];
   let importedRows = 0;
   let failedRows = 0;
+  let skippedRows = 0;
 
   await prisma.importJob.update({
     where: { id: jobId },
@@ -38,11 +31,22 @@ export async function processImport(
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
-    const rowNum = i + 2; // 1-indexed + header row
+    const rowNum = i + 2;
 
     try {
-      if (!row.sku || !row.name || !row.batchNumber || !row.expiryDate || !row.quantity) {
-        throw new Error("Missing required fields: sku, name, batchNumber, expiryDate, quantity");
+      if (!row.sku) throw new Error("Missing required field: SKU");
+      if (!row.expiryDate) throw new Error("Missing required field: Expiry Date");
+
+      const trimmed = row.quantityRaw.trim();
+      if (trimmed === "") {
+        skippedRows++;
+        continue;
+      }
+
+      const qty = parseInt(trimmed, 10);
+      if (isNaN(qty) || qty === 0) {
+        skippedRows++;
+        continue;
       }
 
       const expiryDate = new Date(row.expiryDate);
@@ -50,57 +54,48 @@ export async function processImport(
         throw new Error(`Invalid expiry date: ${row.expiryDate}`);
       }
 
-      if (row.quantity <= 0) {
-        throw new Error("Quantity must be positive");
-      }
-
       await prisma.$transaction(async (tx) => {
-        const product = await tx.product.upsert({
-          where: { sku: row.sku },
-          update: {
-            name: row.name,
-            genericName: row.genericName,
-            manufacturer: row.manufacturer,
-            category: row.category,
-            unit: row.unit ?? "box",
-            unitPrice: row.unitPrice,
-            requiresPrescription: row.requiresPrescription ?? false,
-          },
-          create: {
-            sku: row.sku,
-            name: row.name,
-            genericName: row.genericName,
-            manufacturer: row.manufacturer,
-            category: row.category,
-            unit: row.unit ?? "box",
-            unitPrice: row.unitPrice,
-            requiresPrescription: row.requiresPrescription ?? false,
-          },
+        const product = await tx.product.findUnique({ where: { sku: row.sku } });
+        if (!product) throw new Error(`Product with SKU "${row.sku}" not found`);
+
+        const existingBatch = await tx.productBatch.findFirst({
+          where: { productId: product.id, expiryDate },
         });
 
-        await tx.productBatch.upsert({
-          where: {
-            productId_batchNumber: {
-              productId: product.id,
-              batchNumber: row.batchNumber,
-            },
-          },
-          update: {
-            quantityIn: { increment: row.quantity },
-            costPrice: row.costPrice ? row.costPrice : undefined,
-            supplier: row.supplier,
-            importJobId: jobId,
-          },
-          create: {
-            productId: product.id,
-            batchNumber: row.batchNumber,
-            expiryDate,
-            quantityIn: row.quantity,
-            costPrice: row.costPrice ? row.costPrice : undefined,
-            supplier: row.supplier,
-            importJobId: jobId,
-          },
-        });
+        if (qty > 0) {
+          if (existingBatch) {
+            await tx.productBatch.update({
+              where: { id: existingBatch.id },
+              data: { quantityIn: { increment: qty }, importJobId: jobId },
+            });
+          } else {
+            await tx.productBatch.create({
+              data: {
+                productId: product.id,
+                batchNumber: `IMP-${expiryDate.toISOString().slice(0, 10)}-${Date.now()}`,
+                expiryDate,
+                quantityIn: qty,
+                importJobId: jobId,
+              },
+            });
+          }
+        } else {
+          if (!existingBatch) {
+            throw new Error(`No batch found for SKU "${row.sku}" with expiry ${row.expiryDate}`);
+          }
+          const absQty = Math.abs(qty);
+          const available =
+            existingBatch.quantityIn - existingBatch.quantityOut - existingBatch.quantityOnHold;
+          if (absQty > available) {
+            throw new Error(
+              `Insufficient stock: trying to remove ${absQty} but only ${available} available`
+            );
+          }
+          await tx.productBatch.update({
+            where: { id: existingBatch.id },
+            data: { quantityOut: { increment: absQty }, importJobId: jobId },
+          });
+        }
       });
 
       importedRows++;
@@ -134,10 +129,10 @@ export async function processImport(
         action: "INVENTORY_IMPORT",
         entity: "ImportJob",
         entityId: jobId,
-        after: { importedRows, failedRows, status: finalStatus },
+        after: { importedRows, failedRows, skippedRows, status: finalStatus },
       },
     });
   }
 
-  return { importedRows, failedRows, errors };
+  return { importedRows, failedRows, skippedRows, errors };
 }

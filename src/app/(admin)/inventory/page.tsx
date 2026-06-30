@@ -5,27 +5,38 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Upload, Package } from "lucide-react";
 
-async function getProducts(search: string, page: number) {
+async function getProducts(search: string, page: number, expiry: string) {
   const limit = 25;
-  const where = search
+  const now = new Date();
+
+  const searchWhere = search
     ? {
-        isActive: true,
         OR: [
           { name: { contains: search, mode: "insensitive" as const } },
           { sku: { contains: search, mode: "insensitive" as const } },
           { genericName: { contains: search, mode: "insensitive" as const } },
         ],
       }
-    : { isActive: true };
+    : {};
 
-  const now = new Date();
+  let expiryWhere = {};
+  if (expiry === "expired") {
+    expiryWhere = { batches: { some: { expiryDate: { lt: now } } } };
+  } else if (expiry) {
+    const daysOut = parseInt(expiry, 10);
+    const cutoff = new Date(now.getTime() + daysOut * 86400000);
+    expiryWhere = { batches: { some: { expiryDate: { gte: now, lte: cutoff } } } };
+  }
+
+  const where = { isActive: true, ...searchWhere, ...expiryWhere };
+
   const [products, total, totalActive] = await Promise.all([
     prisma.product.findMany({
       where,
       include: {
         batches: {
-          where: { expiryDate: { gt: now } },
-          select: { quantityIn: true, quantityOut: true, quantityOnHold: true },
+          select: { quantityIn: true, quantityOut: true, quantityOnHold: true, expiryDate: true },
+          orderBy: { expiryDate: "asc" },
         },
       },
       orderBy: { name: "asc" },
@@ -37,10 +48,14 @@ async function getProducts(search: string, page: number) {
   ]);
 
   return {
-    products: products.map((p) => ({
-      ...p,
-      stock: p.batches.reduce((s, b) => s + b.quantityIn - b.quantityOut - b.quantityOnHold, 0),
-    })),
+    products: products.map((p) => {
+      const nonExpired = p.batches.filter((b) => b.expiryDate > now);
+      return {
+        ...p,
+        stock: nonExpired.reduce((s, b) => s + b.quantityIn - b.quantityOut - b.quantityOnHold, 0),
+        earliestExpiry: p.batches[0]?.expiryDate ?? null,
+      };
+    }),
     total,
     totalActive,
     pages: Math.ceil(total / limit),
@@ -48,14 +63,15 @@ async function getProducts(search: string, page: number) {
 }
 
 interface Props {
-  searchParams: Promise<{ search?: string; page?: string }>;
+  searchParams: Promise<{ search?: string; page?: string; expiry?: string }>;
 }
 
 export default async function InventoryPage({ searchParams }: Props) {
   const params = await searchParams;
   const search = params.search ?? "";
   const page = parseInt(params.page ?? "1");
-  const { products, total, pages, totalActive } = await getProducts(search, page);
+  const expiry = params.expiry ?? "";
+  const { products, total, pages, totalActive } = await getProducts(search, page, expiry);
 
   return (
     <div className="space-y-6">
@@ -87,13 +103,24 @@ export default async function InventoryPage({ searchParams }: Props) {
         </Card>
       </div>
 
-      <form className="flex gap-3">
+      <form className="flex gap-3 flex-wrap">
         <input
           name="search"
           defaultValue={search}
           placeholder="Search by name, SKU, or generic name..."
-          className="flex-1 border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="flex-1 min-w-48 border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
+        <select
+          name="expiry"
+          defaultValue={expiry}
+          className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+        >
+          <option value="">All Expiry Dates</option>
+          <option value="30">Expiring in 30 days</option>
+          <option value="60">Expiring in 60 days</option>
+          <option value="90">Expiring in 90 days</option>
+          <option value="expired">Already Expired</option>
+        </select>
         <Button type="submit" variant="outline">Search</Button>
       </form>
 
@@ -113,43 +140,69 @@ export default async function InventoryPage({ searchParams }: Props) {
                 <th className="px-4 py-3 text-left font-medium text-gray-600">Category</th>
                 <th className="px-4 py-3 text-left font-medium text-gray-600">Unit Price</th>
                 <th className="px-4 py-3 text-left font-medium text-gray-600">Stock</th>
+                <th className="px-4 py-3 text-left font-medium text-gray-600">Earliest Expiry</th>
                 <th className="px-4 py-3 text-left font-medium text-gray-600">Rx</th>
               </tr>
             </thead>
             <tbody className="divide-y">
-              {products.map((p) => (
-                <tr key={p.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-mono text-xs text-gray-500">{p.sku}</td>
-                  <td className="px-4 py-3">
-                    <p className="font-medium">{p.name}</p>
-                    {p.genericName && (
-                      <p className="text-xs text-muted-foreground">{p.genericName}</p>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">{p.category ?? "—"}</td>
-                  <td className="px-4 py-3">${Number(p.unitPrice).toFixed(2)}</td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`font-medium ${
-                        p.stock === 0
-                          ? "text-red-600"
-                          : p.stock < 10
-                          ? "text-amber-600"
-                          : "text-green-700"
-                      }`}
-                    >
-                      {p.stock} {p.unit}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    {p.requiresPrescription ? (
-                      <Badge variant="outline" className="text-blue-600 border-blue-300 text-xs">Rx</Badge>
-                    ) : (
-                      <span className="text-muted-foreground text-xs">OTC</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
+              {products.map((p) => {
+                const isExpired = p.earliestExpiry && p.earliestExpiry < new Date();
+                const isSoonExpiring =
+                  p.earliestExpiry &&
+                  !isExpired &&
+                  p.earliestExpiry < new Date(Date.now() + 30 * 86400000);
+
+                return (
+                  <tr key={p.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 font-mono text-xs text-gray-500">{p.sku}</td>
+                    <td className="px-4 py-3">
+                      <p className="font-medium">{p.name}</p>
+                      {p.genericName && (
+                        <p className="text-xs text-muted-foreground">{p.genericName}</p>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">{p.category ?? "—"}</td>
+                    <td className="px-4 py-3">${Number(p.unitPrice).toFixed(2)}</td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`font-medium ${
+                          p.stock === 0
+                            ? "text-red-600"
+                            : p.stock < 10
+                            ? "text-amber-600"
+                            : "text-green-700"
+                        }`}
+                      >
+                        {p.stock} {p.unit}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {p.earliestExpiry ? (
+                        <span
+                          className={`text-sm font-medium ${
+                            isExpired
+                              ? "text-red-600"
+                              : isSoonExpiring
+                              ? "text-amber-600"
+                              : "text-gray-700"
+                          }`}
+                        >
+                          {p.earliestExpiry.toLocaleDateString()}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {p.requiresPrescription ? (
+                        <Badge variant="outline" className="text-blue-600 border-blue-300 text-xs">Rx</Badge>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">OTC</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -161,7 +214,7 @@ export default async function InventoryPage({ searchParams }: Props) {
           <div className="flex gap-2">
             {page > 1 && (
               <Link
-                href={`?page=${page - 1}&search=${search}`}
+                href={`?page=${page - 1}&search=${search}&expiry=${expiry}`}
                 className="inline-flex items-center h-7 px-2.5 rounded-lg text-sm font-medium border border-border bg-background hover:bg-muted transition-all"
               >
                 Previous
@@ -169,7 +222,7 @@ export default async function InventoryPage({ searchParams }: Props) {
             )}
             {page < pages && (
               <Link
-                href={`?page=${page + 1}&search=${search}`}
+                href={`?page=${page + 1}&search=${search}&expiry=${expiry}`}
                 className="inline-flex items-center h-7 px-2.5 rounded-lg text-sm font-medium border border-border bg-background hover:bg-muted transition-all"
               >
                 Next

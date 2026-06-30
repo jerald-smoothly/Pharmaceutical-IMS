@@ -11,6 +11,7 @@ interface ImportResult {
   jobId: string;
   importedRows: number;
   failedRows: number;
+  skippedRows: number;
   errors: { row: number; message: string }[];
 }
 
@@ -24,8 +25,8 @@ export default function ImportStockClient() {
 
   const handleFile = (f: File) => {
     const ext = f.name.split(".").pop()?.toLowerCase();
-    if (!["csv", "xlsx", "xls"].includes(ext ?? "")) {
-      toast.error("Only CSV and Excel files are supported.");
+    if (!["csv", "xlsx"].includes(ext ?? "")) {
+      toast.error("Only CSV and XLSX files are accepted.");
       return;
     }
     setFile(f);
@@ -104,11 +105,11 @@ export default function ImportStockClient() {
                 browse
               </button>
             </p>
-            <p className="text-sm text-muted-foreground">Supports CSV, XLSX, XLS</p>
+            <p className="text-sm text-muted-foreground">Supports CSV, XLSX</p>
             <input
               ref={inputRef}
               type="file"
-              accept=".csv,.xlsx,.xls"
+              accept=".csv,.xlsx"
               className="hidden"
               onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
             />
@@ -158,12 +159,19 @@ export default function ImportStockClient() {
         <Card>
           <CardContent className="p-6">
             <h3 className="font-semibold mb-4">Import Results</h3>
-            <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="grid grid-cols-3 gap-4 mb-4">
               <div className="flex items-center gap-3 bg-green-50 rounded-lg p-4">
                 <CheckCircle className="w-6 h-6 text-green-600 shrink-0" />
                 <div>
                   <p className="text-2xl font-bold text-green-700">{result.importedRows}</p>
-                  <p className="text-sm text-green-600">Rows imported</p>
+                  <p className="text-sm text-green-600">Rows updated</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 bg-gray-50 rounded-lg p-4">
+                <AlertCircle className="w-6 h-6 text-gray-400 shrink-0" />
+                <div>
+                  <p className="text-2xl font-bold text-gray-600">{result.skippedRows}</p>
+                  <p className="text-sm text-gray-500">Rows skipped</p>
                 </div>
               </div>
               <div className="flex items-center gap-3 bg-red-50 rounded-lg p-4">
@@ -196,26 +204,18 @@ export default function ImportStockClient() {
 
       <Card>
         <CardContent className="p-6">
-          <h3 className="font-semibold mb-2">Expected Columns</h3>
-          <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
+          <h3 className="font-semibold mb-1">Expected Columns</h3>
+          <p className="text-xs text-muted-foreground mb-3">Accepted file types: CSV, XLSX</p>
+          <div className="space-y-2 text-sm">
             {[
-              ["sku *", "Unique product code"],
-              ["name *", "Product name"],
-              ["batch_number *", "Batch/lot number"],
-              ["expiry_date *", "YYYY-MM-DD format"],
-              ["quantity *", "Units received"],
-              ["unit_price *", "Selling price per unit"],
-              ["generic_name", "INN / generic name"],
-              ["manufacturer", "Manufacturer name"],
-              ["category", "Product category"],
-              ["unit", "box, vial, tablet, etc."],
-              ["cost_price", "Purchase cost"],
-              ["supplier", "Supplier name"],
-              ["requires_prescription", "yes / no"],
+              ["sku *", "Unique product code (must already exist in inventory)"],
+              ["product_name", "Product name (optional, not used for lookup)"],
+              ["expiry_date *", "Batch expiry date — YYYY-MM-DD format"],
+              ["quantity", "Leave empty to skip. Positive = add stock. Negative = remove stock."],
             ].map(([col, desc]) => (
-              <div key={col} className="flex gap-2">
-                <code className="bg-gray-100 px-1 rounded text-gray-700 shrink-0">{col}</code>
-                <span>{desc}</span>
+              <div key={col} className="flex gap-3">
+                <code className="bg-gray-100 px-2 py-0.5 rounded text-gray-700 shrink-0 self-start">{col}</code>
+                <span className="text-muted-foreground">{desc}</span>
               </div>
             ))}
           </div>

@@ -18,9 +18,9 @@ export async function POST(req: NextRequest) {
   }
 
   const ext = file.name.split(".").pop()?.toLowerCase();
-  if (!["csv", "xlsx", "xls"].includes(ext ?? "")) {
+  if (!["csv", "xlsx"].includes(ext ?? "")) {
     return NextResponse.json(
-      { error: "Unsupported file type. Use CSV or Excel." },
+      { error: "Unsupported file type. Only CSV and XLSX are accepted." },
       { status: 400 }
     );
   }
@@ -94,18 +94,8 @@ export async function GET(req: NextRequest) {
 function mapRows(raw: Record<string, string>[]): ImportRow[] {
   return raw.map((r) => ({
     sku: r.sku ?? "",
-    name: r.name ?? r.product_name ?? "",
-    genericName: r.generic_name,
-    manufacturer: r.manufacturer,
-    category: r.category,
-    unit: r.unit,
-    unitPrice: parseFloat(r.unit_price ?? r.unitprice ?? "0"),
-    batchNumber: r.batch_number ?? r.batch ?? "",
+    name: r.product_name ?? r.name ?? "",
     expiryDate: r.expiry_date ?? r.expiry ?? "",
-    quantity: parseInt(r.quantity ?? "0", 10),
-    costPrice: r.cost_price ? parseFloat(r.cost_price) : undefined,
-    supplier: r.supplier,
-    requiresPrescription:
-      ["yes", "true", "1"].includes((r.requires_prescription ?? "").toLowerCase()),
+    quantityRaw: r.quantity ?? "",
   }));
 }
