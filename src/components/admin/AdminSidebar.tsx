@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Package,
-  Upload,
   Users,
   Building2,
   ShoppingCart,
@@ -21,7 +20,6 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 const baseNav = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Inventory", href: "/inventory", icon: Package },
-  { label: "Import Stock", href: "/inventory/import", icon: Upload },
   { label: "Contacts", href: "/crm/contacts", icon: Users },
   { label: "Companies", href: "/crm/companies", icon: Building2 },
   { label: "Orders", href: "/orders", icon: ShoppingCart },
