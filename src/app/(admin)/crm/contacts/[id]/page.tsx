@@ -48,7 +48,6 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
   if (!contact) notFound();
 
   const totalOrders = contact.orders.length;
-  const totalSpent = contact.orders.reduce((sum, o) => sum + Number(o.totalAmount), 0);
   const initials = `${contact.firstName[0]}${contact.lastName[0]}`.toUpperCase();
 
   return (
@@ -166,36 +165,19 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
         {/* Right column */}
         <div className="lg:col-span-2 space-y-4">
           {/* Stats */}
-          <div className="grid grid-cols-2 gap-4">
-            <Card>
-              <CardContent className="pt-5">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
-                    <ShoppingCart className="w-4 h-4 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-gray-900">{totalOrders}</p>
-                    <p className="text-xs text-muted-foreground">Total Orders</p>
-                  </div>
+          <Card>
+            <CardContent className="pt-5">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+                  <ShoppingCart className="w-4 h-4 text-blue-600" />
                 </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-5">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-green-50 flex items-center justify-center shrink-0">
-                    <span className="text-sm font-bold text-green-600">$</span>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-gray-900">
-                      {totalSpent.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </p>
-                    <p className="text-xs text-muted-foreground">Total Spent</p>
-                  </div>
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">{totalOrders}</p>
+                  <p className="text-xs text-muted-foreground">Total Orders</p>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Orders table */}
           <Card>

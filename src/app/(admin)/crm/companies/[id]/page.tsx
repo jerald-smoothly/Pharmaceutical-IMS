@@ -48,6 +48,8 @@ export default async function CompanyDetailPage({ params }: { params: Promise<{ 
 
   if (!company) notFound();
 
+  const totalSpent = combinedOrders.reduce((sum, o) => sum + Number(o.totalAmount), 0);
+
   return (
     <div className="p-8 space-y-6 max-w-5xl">
       <div className="flex items-start justify-between">
@@ -65,6 +67,38 @@ export default async function CompanyDetailPage({ params }: { params: Promise<{ 
             Edit
           </button>
         </CompanyFormDialog>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 gap-4">
+        <Card>
+          <CardContent className="pt-5">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+                <ShoppingCart className="w-4 h-4 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900">{totalOrderCount}</p>
+                <p className="text-xs text-muted-foreground">Total Orders</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-5">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-green-50 flex items-center justify-center shrink-0">
+                <span className="text-sm font-bold text-green-600">$</span>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900">
+                  {totalSpent.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+                <p className="text-xs text-muted-foreground">Total Spent</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
