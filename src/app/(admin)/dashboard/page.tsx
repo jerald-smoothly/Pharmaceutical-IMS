@@ -1,16 +1,7 @@
 import { prisma } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ShoppingCart, Users, Building2, TrendingUp, AlertTriangle, Code2 } from "lucide-react";
+import { ShoppingCart, Users, Building2, TrendingUp, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { headers } from "next/headers";
-import EmbedSnippet from "@/components/admin/EmbedSnippet";
-
-async function getOrigin() {
-  const hdrs = await headers();
-  const host = hdrs.get("host") ?? "localhost:3000";
-  const proto = host.startsWith("localhost") ? "http" : "https";
-  return `${proto}://${host}`;
-}
 
 async function getStats() {
   const now = new Date();
@@ -47,8 +38,7 @@ const statusColors: Record<string, string> = {
 };
 
 export default async function DashboardPage() {
-  const [{ orders, contacts, companies, expiringBatches, recentOrders }, origin] =
-    await Promise.all([getStats(), getOrigin()]);
+  const { orders, contacts, companies, expiringBatches, recentOrders } = await getStats();
 
   return (
     <div className="space-y-6">
@@ -76,21 +66,6 @@ export default async function DashboardPage() {
           </Card>
         ))}
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Code2 className="w-4 h-4 text-blue-500" />
-            Embed catalog on your website
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground mb-3">
-            Paste this snippet anywhere on your website to display your live product catalog. Visitors can browse and sign up directly to place orders.
-          </p>
-          <EmbedSnippet origin={origin} />
-        </CardContent>
-      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>

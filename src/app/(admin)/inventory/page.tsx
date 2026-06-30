@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Upload, Package, Plus } from "lucide-react";
 import ProductFormDialog from "@/components/admin/ProductFormDialog";
 import ImportStockDialog from "@/components/admin/ImportStockDialog";
+import CopyEmbedButton from "@/components/admin/CopyEmbedButton";
 
 async function getProducts(search: string, page: number, expiry: string) {
   const limit = 25;
@@ -83,6 +84,7 @@ export default async function InventoryPage({ searchParams }: Props) {
           <p className="text-muted-foreground">{total} products</p>
         </div>
         <div className="flex items-center gap-2">
+          <CopyEmbedButton />
           <ProductFormDialog>
             <button className="inline-flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/80 h-8 px-2.5 rounded-lg text-sm font-medium transition-all">
               <Plus className="w-4 h-4" />
