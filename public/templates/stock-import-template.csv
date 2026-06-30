@@ -1,4 +1,4 @@
-sku,product_name,expiry_date,quantity
-AMX500-CAP,Amoxicillin 500mg Capsules,2026-12-31,100
-PARA500-TAB,Paracetamol 500mg Tablets,2027-06-30,-5
-OMEP20-CAP,Omeprazole 20mg Capsules,2026-09-30,
+sku,product_name,quantity,expiry_date
+AMX500-CAP,Amoxicillin 500mg Capsules,100,2026-12-31
+PARA500-TAB,Paracetamol 500mg Tablets,-5,2027-06-30
+OMEP20-CAP,Omeprazole 20mg Capsules,,2026-09-30

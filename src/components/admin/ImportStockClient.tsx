@@ -17,6 +17,7 @@ interface ImportResult {
 
 export default function ImportStockClient() {
   const [file, setFile] = useState<File | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -26,9 +27,11 @@ export default function ImportStockClient() {
   const handleFile = (f: File) => {
     const ext = f.name.split(".").pop()?.toLowerCase();
     if (!["csv", "xlsx"].includes(ext ?? "")) {
-      toast.error("Only CSV and XLSX files are accepted.");
+      setFileError(`"${f.name}" is not accepted. Only CSV and XLSX files are allowed.`);
+      setFile(null);
       return;
     }
+    setFileError(null);
     setFile(f);
     setResult(null);
   };
@@ -78,6 +81,7 @@ export default function ImportStockClient() {
 
   const reset = () => {
     setFile(null);
+    setFileError(null);
     setResult(null);
     setProgress(0);
     if (inputRef.current) inputRef.current.value = "";
@@ -114,6 +118,13 @@ export default function ImportStockClient() {
               onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
             />
           </div>
+
+          {fileError && (
+            <div className="mt-4 flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">
+              <XCircle className="w-4 h-4 shrink-0" />
+              {fileError}
+            </div>
+          )}
 
           {file && (
             <div className="mt-4 flex items-center justify-between bg-gray-50 rounded-lg px-4 py-3">
@@ -204,14 +215,14 @@ export default function ImportStockClient() {
 
       <Card>
         <CardContent className="p-6">
-          <h3 className="font-semibold mb-1">Expected Columns</h3>
+          <h3 className="font-semibold mb-1">Required Columns</h3>
           <p className="text-xs text-muted-foreground mb-3">Accepted file types: CSV, XLSX</p>
           <div className="space-y-2 text-sm">
             {[
               ["sku *", "Unique product code (must already exist in inventory)"],
               ["product_name", "Product name (optional, not used for lookup)"],
-              ["expiry_date *", "Batch expiry date — YYYY-MM-DD format"],
               ["quantity", "Leave empty to skip. Positive = add stock. Negative = remove stock."],
+              ["expiry_date *", "Batch expiry date — YYYY-MM-DD format"],
             ].map(([col, desc]) => (
               <div key={col} className="flex gap-3">
                 <code className="bg-gray-100 px-2 py-0.5 rounded text-gray-700 shrink-0 self-start">{col}</code>
