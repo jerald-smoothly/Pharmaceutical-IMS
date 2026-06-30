@@ -4,19 +4,51 @@ import Link from "next/link";
 import ContactFormDialog from "@/components/admin/ContactFormDialog";
 import ImportCrmDialog from "@/components/admin/ImportCrmDialog";
 
+async function syncEmployeeContacts() {
+  const usersWithoutContacts = await prisma.user.findMany({
+    where: { status: "ACTIVE", contact: null },
+    select: { id: true, name: true, email: true },
+  });
+  if (usersWithoutContacts.length === 0) return;
+
+  await Promise.allSettled(
+    usersWithoutContacts.map(async (u) => {
+      const parts = (u.name ?? "").trim().split(/\s+/);
+      const firstName = parts[0] || "Staff";
+      const lastName = parts.slice(1).join(" ") || "";
+      const existing = await prisma.contact.findUnique({ where: { email: u.email } });
+      if (existing && !existing.userId) {
+        return prisma.contact.update({ where: { id: existing.id }, data: { userId: u.id } });
+      }
+      if (!existing) {
+        return prisma.contact.create({ data: { userId: u.id, firstName, lastName, email: u.email } });
+      }
+    })
+  );
+}
+
 async function getContacts(search: string, page: number) {
   const limit = 20;
+
+  // Backfill Contact records for any active users that don't have one yet
+  await syncEmployeeContacts();
+
+  const searchFilter = search
+    ? {
+        OR: [
+          { firstName: { contains: search, mode: "insensitive" as const } },
+          { lastName: { contains: search, mode: "insensitive" as const } },
+          { email: { contains: search, mode: "insensitive" as const } },
+        ],
+      }
+    : null;
+
+  // Show active contacts AND contacts belonging to active user accounts (employees)
   const where = {
-    isActive: true,
-    ...(search
-      ? {
-          OR: [
-            { firstName: { contains: search, mode: "insensitive" as const } },
-            { lastName: { contains: search, mode: "insensitive" as const } },
-            { email: { contains: search, mode: "insensitive" as const } },
-          ],
-        }
-      : {}),
+    AND: [
+      { OR: [{ isActive: true }, { user: { status: "ACTIVE" } }] },
+      ...(searchFilter ? [searchFilter] : []),
+    ],
   };
 
   const [contacts, total, companies] = await Promise.all([
