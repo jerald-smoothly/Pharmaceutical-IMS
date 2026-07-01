@@ -30,19 +30,6 @@ const otherPhoneCountries = allPhoneCountries.filter((c) => !PRIORITY.includes(c
 // ── Location data ──────────────────────────────────────────────────────────────
 const allCountries = Country.getAllCountries().sort((a, b) => a.name.localeCompare(b.name));
 
-const EDIT_FIELDS = [
-  { key: "name",       label: "Company Name" },
-  { key: "industry",   label: "Industry" },
-  { key: "website",    label: "Website / Domain" },
-  { key: "phone",      label: "Phone" },
-  { key: "email",      label: "Email" },
-  { key: "address",    label: "Street Address" },
-  { key: "location",   label: "Country / State / City" },
-  { key: "postalCode", label: "Postal Code" },
-  { key: "taxId",      label: "Tax ID" },
-  { key: "notes",      label: "Notes" },
-];
-
 function getPlaceholder(country: CountryCode): string {
   try {
     const example = getExampleNumber(country, phoneExamples);
@@ -122,12 +109,9 @@ const selectClass = (disabled: boolean) =>
 
 export default function CompanyFormDialog({ children, company }: Props) {
   const router = useRouter();
-  const isEdit = !!company;
 
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState<"pick" | "fill">("pick");
-  const [pickedFields, setPickedFields] = useState<Set<string>>(new Set());
 
   // Phone state
   const [phoneCountry, setPhoneCountry] = useState<CountryCode>("US");
@@ -207,17 +191,6 @@ export default function CompanyFormDialog({ children, company }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  function handleOpenChange(v: boolean) {
-    if (!v) { setStep("pick"); setPickedFields(new Set()); }
-    setOpen(v);
-  }
-
-  function togglePick(key: string) {
-    setPickedFields((prev) => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n; });
-  }
-
-  function show(key: string) { return !isEdit || pickedFields.has(key); }
-
   function handleCountryChange(isoCode: string) {
     setSelectedCountry(isoCode);
     setSelectedState("");
@@ -255,7 +228,7 @@ export default function CompanyFormDialog({ children, company }: Props) {
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
-    if (show("phone") && phoneInput.trim() && !validatePhone(phoneInput, phoneCountry)) {
+    if (phoneInput.trim() && !validatePhone(phoneInput, phoneCountry)) {
       setPhoneTouched(true);
       setPhoneError(`Invalid format. Example: ${getPlaceholder(phoneCountry)}`);
       toast.error("Please enter a valid phone number");
@@ -271,24 +244,15 @@ export default function CompanyFormDialog({ children, company }: Props) {
       if (val) data[k] = val;
     });
 
-    if (show("phone")) {
-      data.phone = phoneInput.trim() ? parseToE164(phoneInput, phoneCountry) : null;
-    }
-
-    if (show("location")) {
-      data.country = selectedCountry
-        ? (allCountries.find((c) => c.isoCode === selectedCountry)?.name ?? selectedCountry)
-        : null;
-      data.state = selectedState
-        ? (State.getStatesOfCountry(selectedCountry).find((s) => s.isoCode === selectedState)?.name ?? selectedState)
-        : null;
-      data.city = selectedCity || null;
-    }
-
-    // postalCode is controlled — only include if picked (or create mode)
-    if (show("postalCode")) {
-      data.postalCode = postalCode.trim() || null;
-    }
+    data.phone = phoneInput.trim() ? parseToE164(phoneInput, phoneCountry) : null;
+    data.country = selectedCountry
+      ? (allCountries.find((c) => c.isoCode === selectedCountry)?.name ?? selectedCountry)
+      : null;
+    data.state = selectedState
+      ? (State.getStatesOfCountry(selectedCountry).find((s) => s.isoCode === selectedState)?.name ?? selectedState)
+      : null;
+    data.city = selectedCity || null;
+    data.postalCode = postalCode.trim() || null;
 
     const url = company ? `/api/crm/companies/${company.id}` : "/api/crm/companies";
     const method = company ? "PATCH" : "POST";
@@ -307,218 +271,162 @@ export default function CompanyFormDialog({ children, company }: Props) {
     }
 
     toast.success(company ? "Company updated" : "Company created");
-    handleOpenChange(false);
+    setOpen(false);
     router.refresh();
   }
 
   return (
     <>
       <span onClick={() => setOpen(true)} className="cursor-pointer">{children}</span>
-      <Dialog open={open} onOpenChange={handleOpenChange}>
+      <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{company ? "Edit Company" : "Add Company"}</DialogTitle>
           </DialogHeader>
 
-          {/* ── Step 1: attribute picker (edit mode only) ── */}
-          {isEdit && step === "pick" ? (
-            <div className="space-y-4 pt-2">
-              <p className="text-xs text-muted-foreground">Select the attributes you want to change.</p>
-              <div className="space-y-1">
-                {EDIT_FIELDS.map((f) => (
-                  <label key={f.key} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted cursor-pointer select-none">
-                    <input type="checkbox" checked={pickedFields.has(f.key)} onChange={() => togglePick(f.key)}
-                      className="rounded border-gray-300 text-primary focus:ring-primary/50 cursor-pointer" />
-                    <span className="text-sm">{f.label}</span>
-                  </label>
-                ))}
-              </div>
-              <div className="flex justify-end gap-2 pt-2 border-t">
-                <button type="button" onClick={() => handleOpenChange(false)}
-                  className="inline-flex items-center h-8 px-3 rounded-lg text-sm font-medium border border-border bg-background hover:bg-muted">
-                  Cancel
-                </button>
-                <button type="button" onClick={() => setStep("fill")} disabled={pickedFields.size === 0}
-                  className="inline-flex items-center h-8 px-3 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/80 disabled:opacity-40">
-                  Next →
-                </button>
-              </div>
-            </div>
-          ) : (
-          /* ── Step 2 / Create: the actual form ── */
           <form onSubmit={onSubmit} className="space-y-4 pt-2">
             <div className="grid grid-cols-2 gap-4">
 
-              {show("name") && (
-                <div className="col-span-2">
-                  <label className="text-sm font-medium text-gray-700 block mb-1">Company Name {!isEdit && "*"}</label>
-                  <input name="name" required={!isEdit} defaultValue={company?.name ?? ""}
-                    placeholder="Acme Corp Inc." className={inputClass} />
-                </div>
-              )}
+              <div className="col-span-2">
+                <label className="text-sm font-medium text-gray-700 block mb-1">Company Name *</label>
+                <input name="name" required defaultValue={company?.name ?? ""}
+                  placeholder="Acme Corp Inc." className={inputClass} />
+              </div>
 
-              {show("industry") && (
-                <div className="col-span-2">
-                  <label className="text-sm font-medium text-gray-700 block mb-1">Industry</label>
-                  <input name="industry" defaultValue={company?.industry ?? ""}
-                    placeholder="e.g. Healthcare" className={inputClass} />
-                </div>
-              )}
+              <div className="col-span-2">
+                <label className="text-sm font-medium text-gray-700 block mb-1">Industry</label>
+                <input name="industry" defaultValue={company?.industry ?? ""}
+                  placeholder="e.g. Healthcare" className={inputClass} />
+              </div>
 
-              {show("website") && (
-                <div className="col-span-2">
-                  <label className="text-sm font-medium text-gray-700 block mb-1">Website / Domain</label>
-                  <input name="website" defaultValue={company?.website ?? ""}
-                    placeholder="acmecorp.com" className={inputClass} />
-                </div>
-              )}
+              <div className="col-span-2">
+                <label className="text-sm font-medium text-gray-700 block mb-1">Website / Domain</label>
+                <input name="website" defaultValue={company?.website ?? ""}
+                  placeholder="acmecorp.com" className={inputClass} />
+              </div>
 
-              {show("phone") && (
-                <div className="col-span-2">
-                  <label className="text-sm font-medium text-gray-700 block mb-1">Phone</label>
-                  <div className="flex gap-2">
-                    <select
-                      value={phoneCountry}
-                      onChange={(e) => handlePhoneCountryChange(e.target.value as CountryCode)}
-                      className="border rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white w-44 shrink-0"
-                    >
-                      <optgroup label="Common">
-                        {priorityPhoneCountries.map((c) => (
-                          <option key={c.code} value={c.code}>{c.name} (+{c.dial})</option>
-                        ))}
-                      </optgroup>
-                      <optgroup label="All countries">
-                        {otherPhoneCountries.map((c) => (
-                          <option key={c.code} value={c.code}>{c.name} (+{c.dial})</option>
-                        ))}
-                      </optgroup>
-                    </select>
-                    <div className="flex-1">
-                      <input
-                        type="tel"
-                        value={phoneInput}
-                        onChange={(e) => handlePhoneChange(e.target.value)}
-                        onBlur={handlePhoneBlur}
-                        placeholder={getPlaceholder(phoneCountry)}
-                        className={inputClass}
-                      />
-                      {phoneError && <p className="text-xs text-red-500 mt-1">{phoneError}</p>}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {show("email") && (
-                <div className="col-span-2">
-                  <label className="text-sm font-medium text-gray-700 block mb-1">Email</label>
-                  <input name="email" type="email" defaultValue={company?.email ?? ""}
-                    placeholder="contact@company.com" className={inputClass} />
-                </div>
-              )}
-
-              {show("address") && (
-                <div className="col-span-2">
-                  <label className="text-sm font-medium text-gray-700 block mb-1">Street Address</label>
-                  <input name="address" defaultValue={company?.address ?? ""}
-                    placeholder="123 Guyabano St." className={inputClass} />
-                </div>
-              )}
-
-              {show("location") && (
-                <>
-                  <div className="col-span-2">
-                    <label className="text-sm font-medium text-gray-700 block mb-1">Country</label>
-                    <select value={selectedCountry} onChange={(e) => handleCountryChange(e.target.value)} className={selectClass(false)}>
-                      <option value="">— Select Country —</option>
-                      {allCountries.map((c) => (
-                        <option key={c.isoCode} value={c.isoCode}>{c.name}</option>
+              <div className="col-span-2">
+                <label className="text-sm font-medium text-gray-700 block mb-1">Phone</label>
+                <div className="flex gap-2">
+                  <select
+                    value={phoneCountry}
+                    onChange={(e) => handlePhoneCountryChange(e.target.value as CountryCode)}
+                    className="border rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white w-44 shrink-0"
+                  >
+                    <optgroup label="Common">
+                      {priorityPhoneCountries.map((c) => (
+                        <option key={c.code} value={c.code}>{c.name} (+{c.dial})</option>
                       ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 block mb-1">State / Province</label>
-                    <select
-                      value={selectedState}
-                      onChange={(e) => handleStateChange(e.target.value)}
-                      disabled={!selectedCountry || stateOptions.length === 0}
-                      className={selectClass(!selectedCountry || stateOptions.length === 0)}
-                    >
-                      <option value="">
-                        {!selectedCountry ? "Select a country first" : stateOptions.length === 0 ? "Not applicable" : "— Select State / Province —"}
-                      </option>
-                      {stateOptions.map((s) => (
-                        <option key={s.isoCode} value={s.isoCode}>{s.name}</option>
+                    </optgroup>
+                    <optgroup label="All countries">
+                      {otherPhoneCountries.map((c) => (
+                        <option key={c.code} value={c.code}>{c.name} (+{c.dial})</option>
                       ))}
-                    </select>
+                    </optgroup>
+                  </select>
+                  <div className="flex-1">
+                    <input
+                      type="tel"
+                      value={phoneInput}
+                      onChange={(e) => handlePhoneChange(e.target.value)}
+                      onBlur={handlePhoneBlur}
+                      placeholder={getPlaceholder(phoneCountry)}
+                      className={inputClass}
+                    />
+                    {phoneError && <p className="text-xs text-red-500 mt-1">{phoneError}</p>}
                   </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 block mb-1">City</label>
-                    <select
-                      value={selectedCity}
-                      onChange={(e) => setSelectedCity(e.target.value)}
-                      disabled={!cityReady || cityOptions.length === 0}
-                      className={selectClass(!cityReady || cityOptions.length === 0)}
-                    >
-                      <option value="">
-                        {!selectedCountry ? "Select a country first"
-                          : stateOptions.length > 0 && !selectedState ? "Select a state / province first"
-                          : cityOptions.length === 0 ? "No cities available"
-                          : "— Select City —"}
-                      </option>
-                      {cityOptions.map((c) => (
-                        <option key={`${c.name}-${c.stateCode ?? ""}`} value={c.name}>{c.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                </>
-              )}
-
-              {show("postalCode") && (
-                <div>
-                  <label className="text-sm font-medium text-gray-700 block mb-1">Postal Code</label>
-                  <input name="postalCode" value={postalCode} onChange={(e) => setPostalCode(e.target.value)}
-                    placeholder="10001" className={inputClass} />
                 </div>
-              )}
+              </div>
 
-              {show("taxId") && (
-                <div>
-                  <label className="text-sm font-medium text-gray-700 block mb-1">Tax ID</label>
-                  <input name="taxId" defaultValue={company?.taxId ?? ""}
-                    placeholder="XX-XXXXXXX" className={inputClass} />
-                </div>
-              )}
+              <div className="col-span-2">
+                <label className="text-sm font-medium text-gray-700 block mb-1">Email</label>
+                <input name="email" type="email" defaultValue={company?.email ?? ""}
+                  placeholder="contact@company.com" className={inputClass} />
+              </div>
 
-              {show("notes") && (
-                <div className="col-span-2">
-                  <label className="text-sm font-medium text-gray-700 block mb-1">Notes</label>
-                  <textarea name="notes" defaultValue={company?.notes ?? ""} rows={3}
-                    placeholder="Internal notes…"
-                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
-                </div>
-              )}
+              <div className="col-span-2">
+                <label className="text-sm font-medium text-gray-700 block mb-1">Street Address</label>
+                <input name="address" defaultValue={company?.address ?? ""}
+                  placeholder="123 Guyabano St." className={inputClass} />
+              </div>
+
+              <div className="col-span-2">
+                <label className="text-sm font-medium text-gray-700 block mb-1">Country</label>
+                <select value={selectedCountry} onChange={(e) => handleCountryChange(e.target.value)} className={selectClass(false)}>
+                  <option value="">— Select Country —</option>
+                  {allCountries.map((c) => (
+                    <option key={c.isoCode} value={c.isoCode}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 block mb-1">State / Province</label>
+                <select
+                  value={selectedState}
+                  onChange={(e) => handleStateChange(e.target.value)}
+                  disabled={!selectedCountry || stateOptions.length === 0}
+                  className={selectClass(!selectedCountry || stateOptions.length === 0)}
+                >
+                  <option value="">
+                    {!selectedCountry ? "Select a country first" : stateOptions.length === 0 ? "Not applicable" : "— Select State / Province —"}
+                  </option>
+                  {stateOptions.map((s) => (
+                    <option key={s.isoCode} value={s.isoCode}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 block mb-1">City</label>
+                <select
+                  value={selectedCity}
+                  onChange={(e) => setSelectedCity(e.target.value)}
+                  disabled={!cityReady || cityOptions.length === 0}
+                  className={selectClass(!cityReady || cityOptions.length === 0)}
+                >
+                  <option value="">
+                    {!selectedCountry ? "Select a country first"
+                      : stateOptions.length > 0 && !selectedState ? "Select a state / province first"
+                      : cityOptions.length === 0 ? "No cities available"
+                      : "— Select City —"}
+                  </option>
+                  {cityOptions.map((c) => (
+                    <option key={`${c.name}-${c.stateCode ?? ""}`} value={c.name}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700 block mb-1">Postal Code</label>
+                <input name="postalCode" value={postalCode} onChange={(e) => setPostalCode(e.target.value)}
+                  placeholder="10001" className={inputClass} />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700 block mb-1">Tax ID</label>
+                <input name="taxId" defaultValue={company?.taxId ?? ""}
+                  placeholder="XX-XXXXXXX" className={inputClass} />
+              </div>
+
+              <div className="col-span-2">
+                <label className="text-sm font-medium text-gray-700 block mb-1">Notes</label>
+                <textarea name="notes" defaultValue={company?.notes ?? ""} rows={3}
+                  placeholder="Internal notes…"
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
+              </div>
 
             </div>
 
             <div className="flex justify-end gap-3 pt-2 border-t">
-              {isEdit ? (
-                <button type="button" onClick={() => setStep("pick")}
-                  className="inline-flex items-center h-8 px-3 rounded-lg text-sm font-medium border border-border bg-background hover:bg-muted">
-                  ← Back
-                </button>
-              ) : (
-                <button type="button" onClick={() => handleOpenChange(false)}
-                  className="inline-flex items-center h-8 px-3 rounded-lg text-sm font-medium border border-border bg-background hover:bg-muted transition-all">
-                  Cancel
-                </button>
-              )}
+              <button type="button" onClick={() => setOpen(false)}
+                className="inline-flex items-center h-8 px-3 rounded-lg text-sm font-medium border border-border bg-background hover:bg-muted transition-all">
+                Cancel
+              </button>
               <button type="submit" disabled={loading}
                 className="inline-flex items-center h-8 px-3 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/80 transition-all disabled:opacity-50">
                 {loading ? "Saving..." : company ? "Save Changes" : "Create Company"}
               </button>
             </div>
           </form>
-          )}
         </DialogContent>
       </Dialog>
     </>
