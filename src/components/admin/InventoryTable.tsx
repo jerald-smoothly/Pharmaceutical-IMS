@@ -11,9 +11,7 @@ const COLUMNS: ColDef[] = [
   { key: "sku", label: "SKU" },
   { key: "name", label: "Name" },
   { key: "category", label: "Category" },
-  { key: "unitPrice", label: "Unit Price" },
   { key: "stock", label: "Stock" },
-  { key: "earliestExpiry", label: "Earliest Expiry" },
   { key: "rx", label: "Rx" },
 ];
 
@@ -40,8 +38,6 @@ interface Props {
 
 export default function InventoryTable({ products, search, expiry, page, pages }: Props) {
   const { visible, onChange } = useColumnPicker("rx-cols-inventory", COLUMNS);
-  const now = new Date();
-  const soonCutoff = new Date(now.getTime() + 30 * 86400000);
 
   return (
     <div className="space-y-4">
@@ -81,18 +77,12 @@ export default function InventoryTable({ products, search, expiry, page, pages }
                 {visible.has("sku") && <th className="px-4 py-3 text-left font-medium text-gray-600 dark:text-muted-foreground">SKU</th>}
                 {visible.has("name") && <th className="px-4 py-3 text-left font-medium text-gray-600 dark:text-muted-foreground">Name</th>}
                 {visible.has("category") && <th className="px-4 py-3 text-left font-medium text-gray-600 dark:text-muted-foreground">Category</th>}
-                {visible.has("unitPrice") && <th className="px-4 py-3 text-left font-medium text-gray-600 dark:text-muted-foreground">Unit Price</th>}
                 {visible.has("stock") && <th className="px-4 py-3 text-left font-medium text-gray-600 dark:text-muted-foreground">Stock</th>}
-                {visible.has("earliestExpiry") && <th className="px-4 py-3 text-left font-medium text-gray-600 dark:text-muted-foreground">Earliest Expiry</th>}
                 {visible.has("rx") && <th className="px-4 py-3 text-left font-medium text-gray-600 dark:text-muted-foreground">Rx</th>}
               </tr>
             </thead>
             <tbody className="divide-y">
-              {products.map((p) => {
-                const expDate = p.earliestExpiry ? new Date(p.earliestExpiry) : null;
-                const isExpired = expDate && expDate < now;
-                const isSoon = expDate && !isExpired && expDate < soonCutoff;
-                return (
+              {products.map((p) => (
                   <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-[var(--rx-surface)]">
                     {visible.has("sku") && <td className="px-4 py-3 font-mono text-xs text-gray-500">{p.sku}</td>}
                     {visible.has("name") && (
@@ -102,23 +92,11 @@ export default function InventoryTable({ products, search, expiry, page, pages }
                       </td>
                     )}
                     {visible.has("category") && <td className="px-4 py-3 text-muted-foreground">{p.category ?? "—"}</td>}
-                    {visible.has("unitPrice") && <td className="px-4 py-3">${p.unitPrice.toFixed(2)}</td>}
                     {visible.has("stock") && (
                       <td className="px-4 py-3">
                         <span className={`font-medium ${p.stock === 0 ? "text-red-600" : p.stock < 10 ? "text-amber-600" : "text-green-700"}`}>
                           {p.stock} {p.unit}
                         </span>
-                      </td>
-                    )}
-                    {visible.has("earliestExpiry") && (
-                      <td className="px-4 py-3">
-                        {expDate ? (
-                          <span className={`text-sm font-medium ${isExpired ? "text-red-600" : isSoon ? "text-amber-600" : "text-gray-700 dark:text-foreground"}`}>
-                            {expDate.toLocaleDateString()}
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground text-xs">—</span>
-                        )}
                       </td>
                     )}
                     {visible.has("rx") && (
@@ -131,8 +109,7 @@ export default function InventoryTable({ products, search, expiry, page, pages }
                       </td>
                     )}
                   </tr>
-                );
-              })}
+              ))}
             </tbody>
           </table>
         </div>
