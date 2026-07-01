@@ -192,12 +192,6 @@ export default function OrderFormDialog({ children, products, contacts, companie
               )}
             </div>
 
-            <div>
-              <label className="text-sm font-medium text-gray-700 block mb-1">Notes</label>
-              <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2}
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
-            </div>
-
             <div className="flex justify-end gap-3 pt-2 border-t">
               <button type="button" onClick={() => setOpen(false)}
                 className="inline-flex items-center h-8 px-3 rounded-lg text-sm font-medium border border-border bg-background hover:bg-muted transition-all">
