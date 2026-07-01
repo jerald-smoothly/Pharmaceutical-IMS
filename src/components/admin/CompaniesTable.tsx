@@ -8,6 +8,20 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
+const EDIT_FIELDS = [
+  { key: "industry",   label: "Industry" },
+  { key: "phone",      label: "Phone" },
+  { key: "email",      label: "Email" },
+  { key: "website",    label: "Website" },
+  { key: "address",    label: "Address" },
+  { key: "city",       label: "City" },
+  { key: "state",      label: "State / Province" },
+  { key: "country",    label: "Country" },
+  { key: "postalCode", label: "Postal Code" },
+  { key: "taxId",      label: "Tax ID" },
+  { key: "notes",      label: "Notes" },
+];
+
 const COLUMNS: ColDef[] = [
   { key: "company", label: "Company" },
   { key: "location", label: "Location" },
@@ -73,6 +87,8 @@ export default function CompaniesTable({ companies, search, sort, dir, page, pag
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [bulkLoading, setBulkLoading] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
+  const [editStep, setEditStep] = useState<"pick" | "fill">("pick");
+  const [pickedFields, setPickedFields] = useState<Set<string>>(new Set());
   const [editIndustry, setEditIndustry] = useState("");
   const [editPhone, setEditPhone] = useState("");
   const [editEmail, setEditEmail] = useState("");
@@ -84,6 +100,16 @@ export default function CompaniesTable({ companies, search, sort, dir, page, pag
   const [editPostalCode, setEditPostalCode] = useState("");
   const [editTaxId, setEditTaxId] = useState("");
   const [editNotes, setEditNotes] = useState("");
+
+  function closeEdit() {
+    setShowEdit(false); setEditStep("pick"); setPickedFields(new Set());
+    setEditIndustry(""); setEditPhone(""); setEditEmail(""); setEditWebsite("");
+    setEditAddress(""); setEditCity(""); setEditState(""); setEditCountry("");
+    setEditPostalCode(""); setEditTaxId(""); setEditNotes("");
+  }
+  function togglePick(key: string) {
+    setPickedFields((prev) => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n; });
+  }
 
   useEffect(() => { setSelectedIds(new Set()); }, [companies]);
   useEffect(() => { if (checkAllRef.current) checkAllRef.current.indeterminate = someSelected; }, [someSelected]);
@@ -132,12 +158,7 @@ export default function CompaniesTable({ companies, search, sort, dir, page, pag
     setBulkLoading(false);
     if (!res.ok) { toast.error("Failed to update companies"); return; }
     toast.success(`${selectedIds.size} compan${selectedIds.size > 1 ? "ies" : "y"} updated`);
-    setShowEdit(false);
-    setEditIndustry(""); setEditPhone(""); setEditEmail(""); setEditWebsite("");
-    setEditAddress(""); setEditCity(""); setEditState(""); setEditCountry("");
-    setEditPostalCode(""); setEditTaxId(""); setEditNotes("");
-    setSelectedIds(new Set());
-    router.refresh();
+    closeEdit(); setSelectedIds(new Set()); router.refresh();
   }
 
   return (
@@ -178,77 +199,124 @@ export default function CompaniesTable({ companies, search, sort, dir, page, pag
       )}
 
       {showEdit && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowEdit(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={closeEdit}>
           <div className="bg-background rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-semibold text-base">Edit {selectedIds.size} Compan{selectedIds.size > 1 ? "ies" : "y"}</h3>
-            <p className="text-xs text-muted-foreground">Only filled fields will be applied. Leave blank to keep existing values.</p>
-            <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
-              <div>
-                <label className="text-sm font-medium block mb-1">Industry</label>
-                <input value={editIndustry} onChange={(e) => setEditIndustry(e.target.value)} placeholder="e.g. Healthcare"
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
-              </div>
-              <div>
-                <label className="text-sm font-medium block mb-1">Phone</label>
-                <input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} placeholder="+63 2 1234 5678"
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
-              </div>
-              <div>
-                <label className="text-sm font-medium block mb-1">Email</label>
-                <input type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} placeholder="contact@company.com"
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
-              </div>
-              <div>
-                <label className="text-sm font-medium block mb-1">Website</label>
-                <input value={editWebsite} onChange={(e) => setEditWebsite(e.target.value)} placeholder="https://company.com"
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
-              </div>
-              <div>
-                <label className="text-sm font-medium block mb-1">Address</label>
-                <input value={editAddress} onChange={(e) => setEditAddress(e.target.value)} placeholder="123 Main St"
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
+            {editStep === "pick" ? (
+              <>
                 <div>
-                  <label className="text-sm font-medium block mb-1">City</label>
-                  <input value={editCity} onChange={(e) => setEditCity(e.target.value)} placeholder="Manila"
-                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                  <h3 className="font-semibold text-base">Edit {selectedIds.size} Compan{selectedIds.size > 1 ? "ies" : "y"}</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">Select the attributes you want to change.</p>
                 </div>
+                <div className="space-y-1">
+                  {EDIT_FIELDS.map((f) => (
+                    <label key={f.key} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted cursor-pointer select-none">
+                      <input type="checkbox" checked={pickedFields.has(f.key)} onChange={() => togglePick(f.key)}
+                        className="rounded border-gray-300 text-primary focus:ring-primary/50 cursor-pointer" />
+                      <span className="text-sm">{f.label}</span>
+                    </label>
+                  ))}
+                </div>
+                <div className="flex justify-end gap-2 pt-2">
+                  <button onClick={closeEdit} className="inline-flex items-center h-8 px-3 rounded-lg text-sm border border-border bg-background hover:bg-muted">Cancel</button>
+                  <button onClick={() => setEditStep("fill")} disabled={pickedFields.size === 0}
+                    className="inline-flex items-center h-8 px-3 rounded-lg text-sm bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40">
+                    Next →
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
                 <div>
-                  <label className="text-sm font-medium block mb-1">State / Province</label>
-                  <input value={editState} onChange={(e) => setEditState(e.target.value)} placeholder="Metro Manila"
-                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                  <h3 className="font-semibold text-base">Edit {selectedIds.size} Compan{selectedIds.size > 1 ? "ies" : "y"}</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">Only filled fields will be applied.</p>
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-sm font-medium block mb-1">Country</label>
-                  <input value={editCountry} onChange={(e) => setEditCountry(e.target.value)} placeholder="Philippines"
-                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                <div className="space-y-3 max-h-[55vh] overflow-y-auto pr-1">
+                  {pickedFields.has("industry") && (
+                    <div>
+                      <label className="text-sm font-medium block mb-1">Industry</label>
+                      <input value={editIndustry} onChange={(e) => setEditIndustry(e.target.value)} placeholder="e.g. Healthcare"
+                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                    </div>
+                  )}
+                  {pickedFields.has("phone") && (
+                    <div>
+                      <label className="text-sm font-medium block mb-1">Phone</label>
+                      <input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} placeholder="+63 2 1234 5678"
+                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                    </div>
+                  )}
+                  {pickedFields.has("email") && (
+                    <div>
+                      <label className="text-sm font-medium block mb-1">Email</label>
+                      <input type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} placeholder="contact@company.com"
+                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                    </div>
+                  )}
+                  {pickedFields.has("website") && (
+                    <div>
+                      <label className="text-sm font-medium block mb-1">Website</label>
+                      <input value={editWebsite} onChange={(e) => setEditWebsite(e.target.value)} placeholder="https://company.com"
+                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                    </div>
+                  )}
+                  {pickedFields.has("address") && (
+                    <div>
+                      <label className="text-sm font-medium block mb-1">Address</label>
+                      <input value={editAddress} onChange={(e) => setEditAddress(e.target.value)} placeholder="123 Main St"
+                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                    </div>
+                  )}
+                  {pickedFields.has("city") && (
+                    <div>
+                      <label className="text-sm font-medium block mb-1">City</label>
+                      <input value={editCity} onChange={(e) => setEditCity(e.target.value)} placeholder="Manila"
+                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                    </div>
+                  )}
+                  {pickedFields.has("state") && (
+                    <div>
+                      <label className="text-sm font-medium block mb-1">State / Province</label>
+                      <input value={editState} onChange={(e) => setEditState(e.target.value)} placeholder="Metro Manila"
+                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                    </div>
+                  )}
+                  {pickedFields.has("country") && (
+                    <div>
+                      <label className="text-sm font-medium block mb-1">Country</label>
+                      <input value={editCountry} onChange={(e) => setEditCountry(e.target.value)} placeholder="Philippines"
+                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                    </div>
+                  )}
+                  {pickedFields.has("postalCode") && (
+                    <div>
+                      <label className="text-sm font-medium block mb-1">Postal Code</label>
+                      <input value={editPostalCode} onChange={(e) => setEditPostalCode(e.target.value)} placeholder="1000"
+                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                    </div>
+                  )}
+                  {pickedFields.has("taxId") && (
+                    <div>
+                      <label className="text-sm font-medium block mb-1">Tax ID</label>
+                      <input value={editTaxId} onChange={(e) => setEditTaxId(e.target.value)} placeholder="e.g. 123-456-789"
+                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                    </div>
+                  )}
+                  {pickedFields.has("notes") && (
+                    <div>
+                      <label className="text-sm font-medium block mb-1">Notes</label>
+                      <textarea value={editNotes} onChange={(e) => setEditNotes(e.target.value)} placeholder="Internal notes…" rows={3}
+                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none" />
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <label className="text-sm font-medium block mb-1">Postal Code</label>
-                  <input value={editPostalCode} onChange={(e) => setEditPostalCode(e.target.value)} placeholder="1000"
-                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                <div className="flex justify-end gap-2 pt-2">
+                  <button onClick={() => setEditStep("pick")} className="inline-flex items-center h-8 px-3 rounded-lg text-sm border border-border bg-background hover:bg-muted">← Back</button>
+                  <button onClick={handleEdit} disabled={bulkLoading} className="inline-flex items-center h-8 px-3 rounded-lg text-sm bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+                    {bulkLoading ? "Saving…" : "Apply Changes"}
+                  </button>
                 </div>
-              </div>
-              <div>
-                <label className="text-sm font-medium block mb-1">Tax ID</label>
-                <input value={editTaxId} onChange={(e) => setEditTaxId(e.target.value)} placeholder="e.g. 123-456-789"
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
-              </div>
-              <div>
-                <label className="text-sm font-medium block mb-1">Notes</label>
-                <textarea value={editNotes} onChange={(e) => setEditNotes(e.target.value)} placeholder="Internal notes…" rows={3}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none" />
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setShowEdit(false)} className="inline-flex items-center h-8 px-3 rounded-lg text-sm border border-border bg-background hover:bg-muted">Cancel</button>
-              <button onClick={handleEdit} disabled={bulkLoading} className="inline-flex items-center h-8 px-3 rounded-lg text-sm bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
-                {bulkLoading ? "Saving…" : "Apply Changes"}
-              </button>
-            </div>
+              </>
+            )}
           </div>
         </div>
       )}

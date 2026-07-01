@@ -8,6 +8,14 @@ import SearchInput from "@/components/shared/SearchInput";
 import { ColumnPicker, useColumnPicker, ColDef } from "@/components/shared/ColumnPicker";
 import { useState, useEffect, useRef, useCallback } from "react";
 
+const EDIT_FIELDS = [
+  { key: "title",      label: "Title" },
+  { key: "department", label: "Department" },
+  { key: "phone",      label: "Phone" },
+  { key: "companyId",  label: "Company" },
+  { key: "notes",      label: "Notes" },
+];
+
 const COLUMNS: ColDef[] = [
   { key: "name", label: "Name" },
   { key: "company", label: "Company" },
@@ -74,12 +82,22 @@ export default function ContactsTable({ contacts, search, sort, dir, page, pages
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [bulkLoading, setBulkLoading] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
+  const [editStep, setEditStep] = useState<"pick" | "fill">("pick");
+  const [pickedFields, setPickedFields] = useState<Set<string>>(new Set());
   const [editTitle, setEditTitle] = useState("");
   const [editDepartment, setEditDepartment] = useState("");
   const [editPhone, setEditPhone] = useState("");
   const [editNotes, setEditNotes] = useState("");
   const [editCompanyId, setEditCompanyId] = useState("");
   const [companies, setCompanies] = useState<{ id: string; name: string }[]>([]);
+
+  function closeEdit() {
+    setShowEdit(false); setEditStep("pick"); setPickedFields(new Set());
+    setEditTitle(""); setEditDepartment(""); setEditPhone(""); setEditNotes(""); setEditCompanyId("");
+  }
+  function togglePick(key: string) {
+    setPickedFields((prev) => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n; });
+  }
 
   useEffect(() => { setSelectedIds(new Set()); }, [contacts]);
   useEffect(() => { if (checkAllRef.current) checkAllRef.current.indeterminate = someSelected; }, [someSelected]);
@@ -133,10 +151,7 @@ export default function ContactsTable({ contacts, search, sort, dir, page, pages
     setBulkLoading(false);
     if (!res.ok) { toast.error("Failed to update contacts"); return; }
     toast.success(`${selectedIds.size} contact${selectedIds.size > 1 ? "s" : ""} updated`);
-    setShowEdit(false);
-    setEditTitle(""); setEditDepartment(""); setEditPhone(""); setEditNotes(""); setEditCompanyId("");
-    setSelectedIds(new Set());
-    router.refresh();
+    closeEdit(); setSelectedIds(new Set()); router.refresh();
   }
 
   return (
@@ -177,47 +192,86 @@ export default function ContactsTable({ contacts, search, sort, dir, page, pages
       )}
 
       {showEdit && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowEdit(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={closeEdit}>
           <div className="bg-background rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-semibold text-base">Edit {selectedIds.size} Contact{selectedIds.size > 1 ? "s" : ""}</h3>
-            <p className="text-xs text-muted-foreground">Only filled fields will be applied. Leave blank to keep existing values.</p>
-            <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
-              <div>
-                <label className="text-sm font-medium block mb-1">Title</label>
-                <input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="e.g. Procurement Manager"
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
-              </div>
-              <div>
-                <label className="text-sm font-medium block mb-1">Department</label>
-                <input value={editDepartment} onChange={(e) => setEditDepartment(e.target.value)} placeholder="e.g. Finance"
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
-              </div>
-              <div>
-                <label className="text-sm font-medium block mb-1">Phone</label>
-                <input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} placeholder="+63 912 345 6789"
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
-              </div>
-              <div>
-                <label className="text-sm font-medium block mb-1">Company</label>
-                <select value={editCompanyId} onChange={(e) => setEditCompanyId(e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 bg-background">
-                  <option value="">— No change —</option>
-                  <option value="__clear__">Remove company assignment</option>
-                  {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-sm font-medium block mb-1">Notes</label>
-                <textarea value={editNotes} onChange={(e) => setEditNotes(e.target.value)} placeholder="Internal notes…" rows={3}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none" />
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setShowEdit(false)} className="inline-flex items-center h-8 px-3 rounded-lg text-sm border border-border bg-background hover:bg-muted">Cancel</button>
-              <button onClick={handleEdit} disabled={bulkLoading} className="inline-flex items-center h-8 px-3 rounded-lg text-sm bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
-                {bulkLoading ? "Saving…" : "Apply Changes"}
-              </button>
-            </div>
+            {editStep === "pick" ? (
+              <>
+                <div>
+                  <h3 className="font-semibold text-base">Edit {selectedIds.size} Contact{selectedIds.size > 1 ? "s" : ""}</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">Select the attributes you want to change.</p>
+                </div>
+                <div className="space-y-1">
+                  {EDIT_FIELDS.map((f) => (
+                    <label key={f.key} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted cursor-pointer select-none">
+                      <input type="checkbox" checked={pickedFields.has(f.key)} onChange={() => togglePick(f.key)}
+                        className="rounded border-gray-300 text-primary focus:ring-primary/50 cursor-pointer" />
+                      <span className="text-sm">{f.label}</span>
+                    </label>
+                  ))}
+                </div>
+                <div className="flex justify-end gap-2 pt-2">
+                  <button onClick={closeEdit} className="inline-flex items-center h-8 px-3 rounded-lg text-sm border border-border bg-background hover:bg-muted">Cancel</button>
+                  <button onClick={() => setEditStep("fill")} disabled={pickedFields.size === 0}
+                    className="inline-flex items-center h-8 px-3 rounded-lg text-sm bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40">
+                    Next →
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <h3 className="font-semibold text-base">Edit {selectedIds.size} Contact{selectedIds.size > 1 ? "s" : ""}</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">Only filled fields will be applied.</p>
+                </div>
+                <div className="space-y-3 max-h-[55vh] overflow-y-auto pr-1">
+                  {pickedFields.has("title") && (
+                    <div>
+                      <label className="text-sm font-medium block mb-1">Title</label>
+                      <input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="e.g. Procurement Manager"
+                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                    </div>
+                  )}
+                  {pickedFields.has("department") && (
+                    <div>
+                      <label className="text-sm font-medium block mb-1">Department</label>
+                      <input value={editDepartment} onChange={(e) => setEditDepartment(e.target.value)} placeholder="e.g. Finance"
+                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                    </div>
+                  )}
+                  {pickedFields.has("phone") && (
+                    <div>
+                      <label className="text-sm font-medium block mb-1">Phone</label>
+                      <input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} placeholder="+63 912 345 6789"
+                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                    </div>
+                  )}
+                  {pickedFields.has("companyId") && (
+                    <div>
+                      <label className="text-sm font-medium block mb-1">Company</label>
+                      <select value={editCompanyId} onChange={(e) => setEditCompanyId(e.target.value)}
+                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 bg-background">
+                        <option value="">— No change —</option>
+                        <option value="__clear__">Remove company assignment</option>
+                        {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+                    </div>
+                  )}
+                  {pickedFields.has("notes") && (
+                    <div>
+                      <label className="text-sm font-medium block mb-1">Notes</label>
+                      <textarea value={editNotes} onChange={(e) => setEditNotes(e.target.value)} placeholder="Internal notes…" rows={3}
+                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex justify-end gap-2 pt-2">
+                  <button onClick={() => setEditStep("pick")} className="inline-flex items-center h-8 px-3 rounded-lg text-sm border border-border bg-background hover:bg-muted">← Back</button>
+                  <button onClick={handleEdit} disabled={bulkLoading} className="inline-flex items-center h-8 px-3 rounded-lg text-sm bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+                    {bulkLoading ? "Saving…" : "Apply Changes"}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

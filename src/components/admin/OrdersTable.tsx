@@ -16,6 +16,11 @@ const COLUMNS: ColDef[] = [
   { key: "date", label: "Date" },
 ];
 
+const EDIT_FIELDS = [
+  { key: "status", label: "Status" },
+  { key: "notes",  label: "Notes" },
+];
+
 const STATUS_COLORS: Record<string, string> = {
   PENDING:    "bg-yellow-100 text-yellow-800 dark:bg-yellow-500/15 dark:text-yellow-400",
   CONFIRMED:  "bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400",
@@ -55,8 +60,18 @@ export default function OrdersTable({ orders, status, page, pages }: Props) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [bulkLoading, setBulkLoading] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
+  const [editStep, setEditStep] = useState<"pick" | "fill">("pick");
+  const [pickedFields, setPickedFields] = useState<Set<string>>(new Set());
   const [editStatus, setEditStatus] = useState("");
   const [editNotes, setEditNotes] = useState("");
+
+  function closeEdit() {
+    setShowEdit(false); setEditStep("pick"); setPickedFields(new Set());
+    setEditStatus(""); setEditNotes("");
+  }
+  function togglePick(key: string) {
+    setPickedFields((prev) => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n; });
+  }
 
   useEffect(() => { setSelectedIds(new Set()); }, [orders]);
   useEffect(() => { if (checkAllRef.current) checkAllRef.current.indeterminate = someSelected; }, [someSelected]);
@@ -96,9 +111,7 @@ export default function OrdersTable({ orders, status, page, pages }: Props) {
     setBulkLoading(false);
     if (!res.ok) { toast.error("Failed to update orders"); return; }
     toast.success(`${selectedIds.size} order${selectedIds.size > 1 ? "s" : ""} updated`);
-    setShowEdit(false); setEditStatus(""); setEditNotes("");
-    setSelectedIds(new Set());
-    router.refresh();
+    closeEdit(); setSelectedIds(new Set()); router.refresh();
   }
 
   return (
@@ -133,35 +146,69 @@ export default function OrdersTable({ orders, status, page, pages }: Props) {
       )}
 
       {showEdit && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowEdit(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={closeEdit}>
           <div className="bg-background rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-semibold text-base">Edit {selectedIds.size} Order{selectedIds.size > 1 ? "s" : ""}</h3>
-            <div className="space-y-3">
-              <div>
-                <label className="text-sm font-medium block mb-1">Status</label>
-                <select value={editStatus} onChange={(e) => setEditStatus(e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 bg-background">
-                  <option value="">— No change —</option>
-                  <option value="PENDING">Pending</option>
-                  <option value="CONFIRMED">Confirmed</option>
-                  <option value="PROCESSING">Processing</option>
-                  <option value="SHIPPED">Shipped</option>
-                  <option value="DELIVERED">Delivered</option>
-                  <option value="CANCELLED">Cancelled</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-sm font-medium block mb-1">Notes</label>
-                <textarea value={editNotes} onChange={(e) => setEditNotes(e.target.value)} placeholder="Order notes…" rows={3}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none" />
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setShowEdit(false)} className="inline-flex items-center h-8 px-3 rounded-lg text-sm border border-border bg-background hover:bg-muted">Cancel</button>
-              <button onClick={handleEdit} disabled={bulkLoading} className="inline-flex items-center h-8 px-3 rounded-lg text-sm bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
-                {bulkLoading ? "Saving…" : "Apply Changes"}
-              </button>
-            </div>
+            {editStep === "pick" ? (
+              <>
+                <div>
+                  <h3 className="font-semibold text-base">Edit {selectedIds.size} Order{selectedIds.size > 1 ? "s" : ""}</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">Select the attributes you want to change.</p>
+                </div>
+                <div className="space-y-1">
+                  {EDIT_FIELDS.map((f) => (
+                    <label key={f.key} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted cursor-pointer select-none">
+                      <input type="checkbox" checked={pickedFields.has(f.key)} onChange={() => togglePick(f.key)}
+                        className="rounded border-gray-300 text-primary focus:ring-primary/50 cursor-pointer" />
+                      <span className="text-sm">{f.label}</span>
+                    </label>
+                  ))}
+                </div>
+                <div className="flex justify-end gap-2 pt-2">
+                  <button onClick={closeEdit} className="inline-flex items-center h-8 px-3 rounded-lg text-sm border border-border bg-background hover:bg-muted">Cancel</button>
+                  <button onClick={() => setEditStep("fill")} disabled={pickedFields.size === 0}
+                    className="inline-flex items-center h-8 px-3 rounded-lg text-sm bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40">
+                    Next →
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <h3 className="font-semibold text-base">Edit {selectedIds.size} Order{selectedIds.size > 1 ? "s" : ""}</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">Only filled fields will be applied.</p>
+                </div>
+                <div className="space-y-3">
+                  {pickedFields.has("status") && (
+                    <div>
+                      <label className="text-sm font-medium block mb-1">Status</label>
+                      <select value={editStatus} onChange={(e) => setEditStatus(e.target.value)}
+                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 bg-background">
+                        <option value="">— Select —</option>
+                        <option value="PENDING">Pending</option>
+                        <option value="CONFIRMED">Confirmed</option>
+                        <option value="PROCESSING">Processing</option>
+                        <option value="SHIPPED">Shipped</option>
+                        <option value="DELIVERED">Delivered</option>
+                        <option value="CANCELLED">Cancelled</option>
+                      </select>
+                    </div>
+                  )}
+                  {pickedFields.has("notes") && (
+                    <div>
+                      <label className="text-sm font-medium block mb-1">Notes</label>
+                      <textarea value={editNotes} onChange={(e) => setEditNotes(e.target.value)} placeholder="Order notes…" rows={3}
+                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex justify-end gap-2 pt-2">
+                  <button onClick={() => setEditStep("pick")} className="inline-flex items-center h-8 px-3 rounded-lg text-sm border border-border bg-background hover:bg-muted">← Back</button>
+                  <button onClick={handleEdit} disabled={bulkLoading} className="inline-flex items-center h-8 px-3 rounded-lg text-sm bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+                    {bulkLoading ? "Saving…" : "Apply Changes"}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

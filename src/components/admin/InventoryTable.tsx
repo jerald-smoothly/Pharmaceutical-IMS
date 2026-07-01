@@ -10,6 +10,16 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
+const EDIT_FIELDS = [
+  { key: "genericName",          label: "Generic Name" },
+  { key: "manufacturer",         label: "Manufacturer" },
+  { key: "category",             label: "Category" },
+  { key: "unit",                 label: "Unit" },
+  { key: "unitPrice",            label: "Unit Price" },
+  { key: "requiresPrescription", label: "Requires Prescription" },
+  { key: "description",          label: "Description" },
+];
+
 const COLUMNS: ColDef[] = [
   { key: "sku", label: "SKU" },
   { key: "name", label: "Name" },
@@ -51,6 +61,8 @@ export default function InventoryTable({ products, search, expiry, page, pages }
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [bulkLoading, setBulkLoading] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
+  const [editStep, setEditStep] = useState<"pick" | "fill">("pick");
+  const [pickedFields, setPickedFields] = useState<Set<string>>(new Set());
   const [editGenericName, setEditGenericName] = useState("");
   const [editManufacturer, setEditManufacturer] = useState("");
   const [editCategory, setEditCategory] = useState("");
@@ -58,6 +70,15 @@ export default function InventoryTable({ products, search, expiry, page, pages }
   const [editUnit, setEditUnit] = useState("");
   const [editUnitPrice, setEditUnitPrice] = useState("");
   const [editRx, setEditRx] = useState("");
+
+  function closeEdit() {
+    setShowEdit(false); setEditStep("pick"); setPickedFields(new Set());
+    setEditGenericName(""); setEditManufacturer(""); setEditCategory("");
+    setEditDescription(""); setEditUnit(""); setEditUnitPrice(""); setEditRx("");
+  }
+  function togglePick(key: string) {
+    setPickedFields((prev) => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n; });
+  }
 
   useEffect(() => { setSelectedIds(new Set()); }, [products]);
   useEffect(() => { if (checkAllRef.current) checkAllRef.current.indeterminate = someSelected; }, [someSelected]);
@@ -106,11 +127,7 @@ export default function InventoryTable({ products, search, expiry, page, pages }
     setBulkLoading(false);
     if (!res.ok) { toast.error("Failed to update products"); return; }
     toast.success(`${selectedIds.size} product${selectedIds.size > 1 ? "s" : ""} updated`);
-    setShowEdit(false);
-    setEditGenericName(""); setEditManufacturer(""); setEditCategory("");
-    setEditDescription(""); setEditUnit(""); setEditUnitPrice(""); setEditRx("");
-    setSelectedIds(new Set());
-    router.refresh();
+    closeEdit(); setSelectedIds(new Set()); router.refresh();
   }
 
   return (
@@ -163,59 +180,100 @@ export default function InventoryTable({ products, search, expiry, page, pages }
       )}
 
       {showEdit && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowEdit(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={closeEdit}>
           <div className="bg-background rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-semibold text-base">Edit {selectedIds.size} Product{selectedIds.size > 1 ? "s" : ""}</h3>
-            <p className="text-xs text-muted-foreground">Only filled fields will be applied. Leave blank to keep existing values.</p>
-            <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
-              <div>
-                <label className="text-sm font-medium block mb-1">Generic Name</label>
-                <input value={editGenericName} onChange={(e) => setEditGenericName(e.target.value)} placeholder="e.g. Amoxicillin"
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
-              </div>
-              <div>
-                <label className="text-sm font-medium block mb-1">Manufacturer</label>
-                <input value={editManufacturer} onChange={(e) => setEditManufacturer(e.target.value)} placeholder="e.g. Pfizer"
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
-              </div>
-              <div>
-                <label className="text-sm font-medium block mb-1">Category</label>
-                <input value={editCategory} onChange={(e) => setEditCategory(e.target.value)} placeholder="e.g. Antibiotics"
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
+            {editStep === "pick" ? (
+              <>
                 <div>
-                  <label className="text-sm font-medium block mb-1">Unit</label>
-                  <input value={editUnit} onChange={(e) => setEditUnit(e.target.value)} placeholder="e.g. box, tablet, vial"
-                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                  <h3 className="font-semibold text-base">Edit {selectedIds.size} Product{selectedIds.size > 1 ? "s" : ""}</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">Select the attributes you want to change.</p>
                 </div>
+                <div className="space-y-1">
+                  {EDIT_FIELDS.map((f) => (
+                    <label key={f.key} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted cursor-pointer select-none">
+                      <input type="checkbox" checked={pickedFields.has(f.key)} onChange={() => togglePick(f.key)}
+                        className="rounded border-gray-300 text-primary focus:ring-primary/50 cursor-pointer" />
+                      <span className="text-sm">{f.label}</span>
+                    </label>
+                  ))}
+                </div>
+                <div className="flex justify-end gap-2 pt-2">
+                  <button onClick={closeEdit} className="inline-flex items-center h-8 px-3 rounded-lg text-sm border border-border bg-background hover:bg-muted">Cancel</button>
+                  <button onClick={() => setEditStep("fill")} disabled={pickedFields.size === 0}
+                    className="inline-flex items-center h-8 px-3 rounded-lg text-sm bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40">
+                    Next →
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
                 <div>
-                  <label className="text-sm font-medium block mb-1">Unit Price (₱)</label>
-                  <input type="number" min="0" step="0.01" value={editUnitPrice} onChange={(e) => setEditUnitPrice(e.target.value)} placeholder="0.00"
-                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                  <h3 className="font-semibold text-base">Edit {selectedIds.size} Product{selectedIds.size > 1 ? "s" : ""}</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">Only filled fields will be applied.</p>
                 </div>
-              </div>
-              <div>
-                <label className="text-sm font-medium block mb-1">Requires Prescription</label>
-                <select value={editRx} onChange={(e) => setEditRx(e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 bg-background">
-                  <option value="">— No change —</option>
-                  <option value="true">Yes (Rx)</option>
-                  <option value="false">No (OTC)</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-sm font-medium block mb-1">Description</label>
-                <textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} placeholder="Product description…" rows={3}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none" />
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setShowEdit(false)} className="inline-flex items-center h-8 px-3 rounded-lg text-sm border border-border bg-background hover:bg-muted">Cancel</button>
-              <button onClick={handleEdit} disabled={bulkLoading} className="inline-flex items-center h-8 px-3 rounded-lg text-sm bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
-                {bulkLoading ? "Saving…" : "Apply Changes"}
-              </button>
-            </div>
+                <div className="space-y-3 max-h-[55vh] overflow-y-auto pr-1">
+                  {pickedFields.has("genericName") && (
+                    <div>
+                      <label className="text-sm font-medium block mb-1">Generic Name</label>
+                      <input value={editGenericName} onChange={(e) => setEditGenericName(e.target.value)} placeholder="e.g. Amoxicillin"
+                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                    </div>
+                  )}
+                  {pickedFields.has("manufacturer") && (
+                    <div>
+                      <label className="text-sm font-medium block mb-1">Manufacturer</label>
+                      <input value={editManufacturer} onChange={(e) => setEditManufacturer(e.target.value)} placeholder="e.g. Pfizer"
+                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                    </div>
+                  )}
+                  {pickedFields.has("category") && (
+                    <div>
+                      <label className="text-sm font-medium block mb-1">Category</label>
+                      <input value={editCategory} onChange={(e) => setEditCategory(e.target.value)} placeholder="e.g. Antibiotics"
+                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                    </div>
+                  )}
+                  {pickedFields.has("unit") && (
+                    <div>
+                      <label className="text-sm font-medium block mb-1">Unit</label>
+                      <input value={editUnit} onChange={(e) => setEditUnit(e.target.value)} placeholder="e.g. box, tablet, vial"
+                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                    </div>
+                  )}
+                  {pickedFields.has("unitPrice") && (
+                    <div>
+                      <label className="text-sm font-medium block mb-1">Unit Price (₱)</label>
+                      <input type="number" min="0" step="0.01" value={editUnitPrice} onChange={(e) => setEditUnitPrice(e.target.value)} placeholder="0.00"
+                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                    </div>
+                  )}
+                  {pickedFields.has("requiresPrescription") && (
+                    <div>
+                      <label className="text-sm font-medium block mb-1">Requires Prescription</label>
+                      <select value={editRx} onChange={(e) => setEditRx(e.target.value)}
+                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 bg-background">
+                        <option value="">— Select —</option>
+                        <option value="true">Yes (Rx)</option>
+                        <option value="false">No (OTC)</option>
+                      </select>
+                    </div>
+                  )}
+                  {pickedFields.has("description") && (
+                    <div>
+                      <label className="text-sm font-medium block mb-1">Description</label>
+                      <textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} placeholder="Product description…" rows={3}
+                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex justify-end gap-2 pt-2">
+                  <button onClick={() => setEditStep("pick")} className="inline-flex items-center h-8 px-3 rounded-lg text-sm border border-border bg-background hover:bg-muted">← Back</button>
+                  <button onClick={handleEdit} disabled={bulkLoading} className="inline-flex items-center h-8 px-3 rounded-lg text-sm bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+                    {bulkLoading ? "Saving…" : "Apply Changes"}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
