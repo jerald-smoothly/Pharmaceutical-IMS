@@ -12,7 +12,8 @@ const schema = z.discriminatedUnion("action", [
     action: z.literal("update"),
     ids: z.array(z.string()).min(1),
     data: z.object({
-      status: z.enum(["CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"]),
+      status: z.enum(["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"]).optional(),
+      notes:  z.string().nullable().optional(),
     }),
   }),
 ]);
@@ -40,13 +41,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ deleted: ids.length });
   }
 
-  const { status } = parsed.data.data;
-  await prisma.order.updateMany({
-    where: { id: { in: ids } },
-    data: { status, ...(status === "DELIVERED" ? { fulfilledAt: new Date() } : {}) },
-  });
+  const { status, notes } = parsed.data.data;
+  if (!status && notes === undefined) {
+    return NextResponse.json({ error: "No fields to update" }, { status: 400 });
+  }
+
+  const updateData: Record<string, unknown> = {};
+  if (status) {
+    updateData.status = status;
+    if (status === "DELIVERED") updateData.fulfilledAt = new Date();
+  }
+  if (notes !== undefined) updateData.notes = notes;
+
+  await prisma.order.updateMany({ where: { id: { in: ids } }, data: updateData });
   await prisma.auditLog.create({
-    data: { userId: session.user.id, action: "BULK_UPDATE", entity: "Order", entityId: ids.join(","), after: { status } },
+    data: { userId: session.user.id, action: "BULK_UPDATE", entity: "Order", entityId: ids.join(","), after: updateData },
   });
   return NextResponse.json({ updated: ids.length });
 }

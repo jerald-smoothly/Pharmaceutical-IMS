@@ -56,6 +56,7 @@ export default function OrdersTable({ orders, status, page, pages }: Props) {
   const [bulkLoading, setBulkLoading] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [editStatus, setEditStatus] = useState("");
+  const [editNotes, setEditNotes] = useState("");
 
   useEffect(() => { setSelectedIds(new Set()); }, [orders]);
   useEffect(() => { if (checkAllRef.current) checkAllRef.current.indeterminate = someSelected; }, [someSelected]);
@@ -82,17 +83,20 @@ export default function OrdersTable({ orders, status, page, pages }: Props) {
   }
 
   async function handleEdit() {
-    if (!editStatus) { toast.error("Please select a status"); return; }
+    const data: Record<string, string | null> = {};
+    if (editStatus) data.status = editStatus;
+    if (editNotes.trim()) data.notes = editNotes.trim();
+    if (Object.keys(data).length === 0) { toast.error("No changes to apply"); return; }
     setBulkLoading(true);
     const res = await fetch("/api/orders/bulk", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "update", ids: [...selectedIds], data: { status: editStatus } }),
+      body: JSON.stringify({ action: "update", ids: [...selectedIds], data }),
     });
     setBulkLoading(false);
     if (!res.ok) { toast.error("Failed to update orders"); return; }
     toast.success(`${selectedIds.size} order${selectedIds.size > 1 ? "s" : ""} updated`);
-    setShowEdit(false); setEditStatus("");
+    setShowEdit(false); setEditStatus(""); setEditNotes("");
     setSelectedIds(new Set());
     router.refresh();
   }
@@ -137,13 +141,19 @@ export default function OrdersTable({ orders, status, page, pages }: Props) {
                 <label className="text-sm font-medium block mb-1">Status</label>
                 <select value={editStatus} onChange={(e) => setEditStatus(e.target.value)}
                   className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 bg-background">
-                  <option value="">— Select status —</option>
+                  <option value="">— No change —</option>
+                  <option value="PENDING">Pending</option>
                   <option value="CONFIRMED">Confirmed</option>
                   <option value="PROCESSING">Processing</option>
                   <option value="SHIPPED">Shipped</option>
                   <option value="DELIVERED">Delivered</option>
                   <option value="CANCELLED">Cancelled</option>
                 </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium block mb-1">Notes</label>
+                <textarea value={editNotes} onChange={(e) => setEditNotes(e.target.value)} placeholder="Order notes…" rows={3}
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none" />
               </div>
             </div>
             <div className="flex justify-end gap-2 pt-2">

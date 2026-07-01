@@ -75,6 +75,9 @@ export default function ContactsTable({ contacts, search, sort, dir, page, pages
   const [bulkLoading, setBulkLoading] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [editTitle, setEditTitle] = useState("");
+  const [editDepartment, setEditDepartment] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editNotes, setEditNotes] = useState("");
   const [editCompanyId, setEditCompanyId] = useState("");
   const [companies, setCompanies] = useState<{ id: string; name: string }[]>([]);
 
@@ -116,6 +119,9 @@ export default function ContactsTable({ contacts, search, sort, dir, page, pages
   async function handleEdit() {
     const data: Record<string, string | null> = {};
     if (editTitle.trim()) data.title = editTitle.trim();
+    if (editDepartment.trim()) data.department = editDepartment.trim();
+    if (editPhone.trim()) data.phone = editPhone.trim();
+    if (editNotes.trim()) data.notes = editNotes.trim();
     if (editCompanyId) data.companyId = editCompanyId === "__clear__" ? null : editCompanyId;
     if (Object.keys(data).length === 0) { toast.error("No changes to apply"); return; }
     setBulkLoading(true);
@@ -128,7 +134,7 @@ export default function ContactsTable({ contacts, search, sort, dir, page, pages
     if (!res.ok) { toast.error("Failed to update contacts"); return; }
     toast.success(`${selectedIds.size} contact${selectedIds.size > 1 ? "s" : ""} updated`);
     setShowEdit(false);
-    setEditTitle(""); setEditCompanyId("");
+    setEditTitle(""); setEditDepartment(""); setEditPhone(""); setEditNotes(""); setEditCompanyId("");
     setSelectedIds(new Set());
     router.refresh();
   }
@@ -175,10 +181,20 @@ export default function ContactsTable({ contacts, search, sort, dir, page, pages
           <div className="bg-background rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
             <h3 className="font-semibold text-base">Edit {selectedIds.size} Contact{selectedIds.size > 1 ? "s" : ""}</h3>
             <p className="text-xs text-muted-foreground">Only filled fields will be applied. Leave blank to keep existing values.</p>
-            <div className="space-y-3">
+            <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
               <div>
                 <label className="text-sm font-medium block mb-1">Title</label>
                 <input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="e.g. Procurement Manager"
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+              </div>
+              <div>
+                <label className="text-sm font-medium block mb-1">Department</label>
+                <input value={editDepartment} onChange={(e) => setEditDepartment(e.target.value)} placeholder="e.g. Finance"
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+              </div>
+              <div>
+                <label className="text-sm font-medium block mb-1">Phone</label>
+                <input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} placeholder="+63 912 345 6789"
                   className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
               </div>
               <div>
@@ -189,6 +205,11 @@ export default function ContactsTable({ contacts, search, sort, dir, page, pages
                   <option value="__clear__">Remove company assignment</option>
                   {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium block mb-1">Notes</label>
+                <textarea value={editNotes} onChange={(e) => setEditNotes(e.target.value)} placeholder="Internal notes…" rows={3}
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none" />
               </div>
             </div>
             <div className="flex justify-end gap-2 pt-2">

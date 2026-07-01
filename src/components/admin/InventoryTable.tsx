@@ -51,7 +51,12 @@ export default function InventoryTable({ products, search, expiry, page, pages }
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [bulkLoading, setBulkLoading] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
+  const [editGenericName, setEditGenericName] = useState("");
+  const [editManufacturer, setEditManufacturer] = useState("");
   const [editCategory, setEditCategory] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editUnit, setEditUnit] = useState("");
+  const [editUnitPrice, setEditUnitPrice] = useState("");
   const [editRx, setEditRx] = useState("");
 
   useEffect(() => { setSelectedIds(new Set()); }, [products]);
@@ -79,8 +84,17 @@ export default function InventoryTable({ products, search, expiry, page, pages }
   }
 
   async function handleEdit() {
-    const data: Record<string, string | boolean> = {};
-    if (editCategory.trim()) data.category = editCategory.trim();
+    const data: Record<string, string | boolean | number> = {};
+    if (editGenericName.trim())  data.genericName  = editGenericName.trim();
+    if (editManufacturer.trim()) data.manufacturer = editManufacturer.trim();
+    if (editCategory.trim())     data.category     = editCategory.trim();
+    if (editDescription.trim())  data.description  = editDescription.trim();
+    if (editUnit.trim())         data.unit         = editUnit.trim();
+    if (editUnitPrice.trim()) {
+      const price = parseFloat(editUnitPrice);
+      if (isNaN(price) || price < 0) { toast.error("Unit price must be a valid number"); return; }
+      data.unitPrice = price;
+    }
     if (editRx !== "") data.requiresPrescription = editRx === "true";
     if (Object.keys(data).length === 0) { toast.error("No changes to apply"); return; }
     setBulkLoading(true);
@@ -92,7 +106,9 @@ export default function InventoryTable({ products, search, expiry, page, pages }
     setBulkLoading(false);
     if (!res.ok) { toast.error("Failed to update products"); return; }
     toast.success(`${selectedIds.size} product${selectedIds.size > 1 ? "s" : ""} updated`);
-    setShowEdit(false); setEditCategory(""); setEditRx("");
+    setShowEdit(false);
+    setEditGenericName(""); setEditManufacturer(""); setEditCategory("");
+    setEditDescription(""); setEditUnit(""); setEditUnitPrice(""); setEditRx("");
     setSelectedIds(new Set());
     router.refresh();
   }
@@ -151,11 +167,33 @@ export default function InventoryTable({ products, search, expiry, page, pages }
           <div className="bg-background rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
             <h3 className="font-semibold text-base">Edit {selectedIds.size} Product{selectedIds.size > 1 ? "s" : ""}</h3>
             <p className="text-xs text-muted-foreground">Only filled fields will be applied. Leave blank to keep existing values.</p>
-            <div className="space-y-3">
+            <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+              <div>
+                <label className="text-sm font-medium block mb-1">Generic Name</label>
+                <input value={editGenericName} onChange={(e) => setEditGenericName(e.target.value)} placeholder="e.g. Amoxicillin"
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+              </div>
+              <div>
+                <label className="text-sm font-medium block mb-1">Manufacturer</label>
+                <input value={editManufacturer} onChange={(e) => setEditManufacturer(e.target.value)} placeholder="e.g. Pfizer"
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+              </div>
               <div>
                 <label className="text-sm font-medium block mb-1">Category</label>
                 <input value={editCategory} onChange={(e) => setEditCategory(e.target.value)} placeholder="e.g. Antibiotics"
                   className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm font-medium block mb-1">Unit</label>
+                  <input value={editUnit} onChange={(e) => setEditUnit(e.target.value)} placeholder="e.g. box, tablet, vial"
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium block mb-1">Unit Price (₱)</label>
+                  <input type="number" min="0" step="0.01" value={editUnitPrice} onChange={(e) => setEditUnitPrice(e.target.value)} placeholder="0.00"
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+                </div>
               </div>
               <div>
                 <label className="text-sm font-medium block mb-1">Requires Prescription</label>
@@ -165,6 +203,11 @@ export default function InventoryTable({ products, search, expiry, page, pages }
                   <option value="true">Yes (Rx)</option>
                   <option value="false">No (OTC)</option>
                 </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium block mb-1">Description</label>
+                <textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} placeholder="Product description…" rows={3}
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none" />
               </div>
             </div>
             <div className="flex justify-end gap-2 pt-2">

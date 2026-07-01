@@ -12,8 +12,11 @@ const schema = z.discriminatedUnion("action", [
     action: z.literal("update"),
     ids: z.array(z.string()).min(1),
     data: z.object({
-      companyId: z.string().nullable().optional(),
-      title: z.string().nullable().optional(),
+      title:      z.string().nullable().optional(),
+      department: z.string().nullable().optional(),
+      phone:      z.string().nullable().optional(),
+      notes:      z.string().nullable().optional(),
+      companyId:  z.string().nullable().optional(),
     }),
   }),
 ]);
