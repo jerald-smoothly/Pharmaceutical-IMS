@@ -107,6 +107,18 @@ export default function ProductFormDialog({ children }: Props) {
               </div>
 
               <div>
+                <label className="text-sm font-medium text-gray-700 block mb-1">Unit Price *</label>
+                <input
+                  name="unitPrice"
+                  type="number"
+                  required
+                  min="0.01"
+                  step="0.01"
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
                 <label className="text-sm font-medium text-gray-700 block mb-1">Unit</label>
                 <select
                   name="unit"
