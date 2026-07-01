@@ -73,7 +73,7 @@ export function ColumnPicker({ columns, visible, onChange }: Props) {
         className="inline-flex items-center gap-2 h-9 px-3 rounded-lg text-sm font-medium border border-border bg-background hover:bg-muted transition-all"
       >
         <SlidersHorizontal className="w-4 h-4" />
-        Columns
+        Advanced Filter
       </button>
       {open && (
         <div className="absolute right-0 top-full mt-1 z-50 w-48 rounded-lg border border-border bg-[var(--rx-surface)] shadow-lg p-2">
