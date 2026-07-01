@@ -448,7 +448,9 @@ export default function SettingsPanel() {
                     const next = !darkMode;
                     setDarkMode(next);
                     document.documentElement.classList.toggle("dark", next);
-                    localStorage.setItem("theme", next ? "dark" : "light");
+                    const val = next ? "dark" : "light";
+                    localStorage.setItem("theme", val);
+                    document.cookie = `theme=${val}; path=/; max-age=31536000`;
                   }}
                   role="switch"
                   aria-checked={darkMode}

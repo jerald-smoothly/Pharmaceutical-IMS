@@ -137,7 +137,7 @@ export default async function CompaniesPage({ searchParams }: Props) {
                     {c.email && <p className="text-xs text-muted-foreground">{c.email}</p>}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    {[c.city, c.country].filter(Boolean).join(", ") || "—"}
+                    {[c.city, c.state].filter(Boolean).join(", ") || "—"}
                   </td>
                   <td className="px-4 py-3">
                     <span className="inline-flex items-center gap-1 text-muted-foreground">

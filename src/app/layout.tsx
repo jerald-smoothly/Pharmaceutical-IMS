@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { DM_Sans, DM_Mono } from "next/font/google";
+import { cookies } from "next/headers";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -11,13 +12,16 @@ export const metadata: Metadata = {
   description: "Pharmaceutical inventory and ordering platform",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const cookieStore = await cookies();
+  const theme = cookieStore.get("theme")?.value;
+  const isDark = theme === "dark";
+
   return (
-    <html lang="en" className={`${dmSans.variable} ${dmMono.variable} h-full antialiased`}>
-      <head>
-        {/* Apply saved theme before first paint to avoid flash */}
-        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem('theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark');}}catch(e){}})();` }} />
-      </head>
+    <html
+      lang="en"
+      className={`${dmSans.variable} ${dmMono.variable} h-full antialiased${isDark ? " dark" : ""}`}
+    >
       <body className="min-h-full flex flex-col">
         {children}
         <Toaster richColors position="top-right" />
