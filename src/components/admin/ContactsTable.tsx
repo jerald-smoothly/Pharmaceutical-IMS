@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { Users, ChevronUp, ChevronDown, ChevronsUpDown, X } from "lucide-react";
+import { Users, ChevronUp, ChevronDown, ChevronsUpDown, X, Pencil, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import SearchInput from "@/components/shared/SearchInput";
 import { ColumnPicker, useColumnPicker, ColDef } from "@/components/shared/ColumnPicker";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 const COLUMNS: ColDef[] = [
   { key: "name", label: "Name" },
@@ -61,6 +63,7 @@ interface Props {
 
 export default function ContactsTable({ contacts, search, sort, dir, page, pages }: Props) {
   const { visible, onChange } = useColumnPicker("rx-cols-contacts", COLUMNS);
+  const router = useRouter();
   const sh = { sort, dir, search };
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -68,14 +71,66 @@ export default function ContactsTable({ contacts, search, sort, dir, page, pages
   const someSelected = contacts.some((c) => selectedIds.has(c.id)) && !allSelected;
   const checkAllRef = useRef<HTMLInputElement>(null);
 
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editCompanyId, setEditCompanyId] = useState("");
+  const [companies, setCompanies] = useState<{ id: string; name: string }[]>([]);
+
   useEffect(() => { setSelectedIds(new Set()); }, [contacts]);
   useEffect(() => { if (checkAllRef.current) checkAllRef.current.indeterminate = someSelected; }, [someSelected]);
+
+  const fetchCompanies = useCallback(async () => {
+    const res = await fetch("/api/crm/companies");
+    if (res.ok) {
+      const data = await res.json();
+      setCompanies(data.companies ?? data);
+    }
+  }, []);
+
+  useEffect(() => { if (showEdit) fetchCompanies(); }, [showEdit, fetchCompanies]);
 
   function toggleAll() {
     setSelectedIds(allSelected ? new Set() : new Set(contacts.map((c) => c.id)));
   }
   function toggleOne(id: string) {
     setSelectedIds((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
+  }
+
+  async function handleDelete() {
+    setBulkLoading(true);
+    const res = await fetch("/api/crm/contacts/bulk", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "delete", ids: [...selectedIds] }),
+    });
+    setBulkLoading(false);
+    if (!res.ok) { toast.error("Failed to delete contacts"); return; }
+    toast.success(`${selectedIds.size} contact${selectedIds.size > 1 ? "s" : ""} deleted`);
+    setSelectedIds(new Set());
+    setConfirmDelete(false);
+    router.refresh();
+  }
+
+  async function handleEdit() {
+    const data: Record<string, string | null> = {};
+    if (editTitle.trim()) data.title = editTitle.trim();
+    if (editCompanyId) data.companyId = editCompanyId === "__clear__" ? null : editCompanyId;
+    if (Object.keys(data).length === 0) { toast.error("No changes to apply"); return; }
+    setBulkLoading(true);
+    const res = await fetch("/api/crm/contacts/bulk", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "update", ids: [...selectedIds], data }),
+    });
+    setBulkLoading(false);
+    if (!res.ok) { toast.error("Failed to update contacts"); return; }
+    toast.success(`${selectedIds.size} contact${selectedIds.size > 1 ? "s" : ""} updated`);
+    setShowEdit(false);
+    setEditTitle(""); setEditCompanyId("");
+    setSelectedIds(new Set());
+    router.refresh();
   }
 
   return (
@@ -91,11 +146,58 @@ export default function ContactsTable({ contacts, search, sort, dir, page, pages
       </div>
 
       {selectedIds.size > 0 && (
-        <div className="flex items-center justify-between bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm">
-          <span className="font-medium">{selectedIds.size} selected</span>
-          <button onClick={() => setSelectedIds(new Set())} className="inline-flex items-center gap-1 opacity-80 hover:opacity-100 transition-opacity">
-            <X className="w-3.5 h-3.5" /> Clear
-          </button>
+        <div className="flex items-center gap-3 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm">
+          <span className="font-medium mr-auto">{selectedIds.size} selected</span>
+          {confirmDelete ? (
+            <>
+              <span className="opacity-90">Delete {selectedIds.size} contact{selectedIds.size > 1 ? "s" : ""}?</span>
+              <button onClick={handleDelete} disabled={bulkLoading} className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md font-medium disabled:opacity-50">
+                {bulkLoading ? "Deleting…" : "Confirm"}
+              </button>
+              <button onClick={() => setConfirmDelete(false)} className="opacity-80 hover:opacity-100">Cancel</button>
+            </>
+          ) : (
+            <>
+              <button onClick={() => setShowEdit(true)} className="inline-flex items-center gap-1.5 bg-white/15 hover:bg-white/25 px-3 py-1 rounded-md transition-colors">
+                <Pencil className="w-3.5 h-3.5" /> Edit
+              </button>
+              <button onClick={() => setConfirmDelete(true)} className="inline-flex items-center gap-1.5 bg-white/15 hover:bg-red-500 px-3 py-1 rounded-md transition-colors">
+                <Trash2 className="w-3.5 h-3.5" /> Delete
+              </button>
+              <button onClick={() => setSelectedIds(new Set())} className="opacity-70 hover:opacity-100 ml-1"><X className="w-4 h-4" /></button>
+            </>
+          )}
+        </div>
+      )}
+
+      {showEdit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowEdit(false)}>
+          <div className="bg-background rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-semibold text-base">Edit {selectedIds.size} Contact{selectedIds.size > 1 ? "s" : ""}</h3>
+            <p className="text-xs text-muted-foreground">Only filled fields will be applied. Leave blank to keep existing values.</p>
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm font-medium block mb-1">Title</label>
+                <input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="e.g. Procurement Manager"
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+              </div>
+              <div>
+                <label className="text-sm font-medium block mb-1">Company</label>
+                <select value={editCompanyId} onChange={(e) => setEditCompanyId(e.target.value)}
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 bg-background">
+                  <option value="">— No change —</option>
+                  <option value="__clear__">Remove company assignment</option>
+                  {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button onClick={() => setShowEdit(false)} className="inline-flex items-center h-8 px-3 rounded-lg text-sm border border-border bg-background hover:bg-muted">Cancel</button>
+              <button onClick={handleEdit} disabled={bulkLoading} className="inline-flex items-center h-8 px-3 rounded-lg text-sm bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+                {bulkLoading ? "Saving…" : "Apply Changes"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

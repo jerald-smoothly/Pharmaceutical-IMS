@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { Package, X } from "lucide-react";
+import { Package, X, Pencil, Trash2 } from "lucide-react";
 import SearchInput from "@/components/shared/SearchInput";
 import NavSelect from "@/components/shared/NavSelect";
 import { ColumnPicker, useColumnPicker, ColDef } from "@/components/shared/ColumnPicker";
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 const COLUMNS: ColDef[] = [
   { key: "sku", label: "SKU" },
@@ -39,11 +41,18 @@ interface Props {
 
 export default function InventoryTable({ products, search, expiry, page, pages }: Props) {
   const { visible, onChange } = useColumnPicker("rx-cols-inventory", COLUMNS);
+  const router = useRouter();
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const allSelected = products.length > 0 && products.every((p) => selectedIds.has(p.id));
   const someSelected = products.some((p) => selectedIds.has(p.id)) && !allSelected;
   const checkAllRef = useRef<HTMLInputElement>(null);
+
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
+  const [editCategory, setEditCategory] = useState("");
+  const [editRx, setEditRx] = useState("");
 
   useEffect(() => { setSelectedIds(new Set()); }, [products]);
   useEffect(() => { if (checkAllRef.current) checkAllRef.current.indeterminate = someSelected; }, [someSelected]);
@@ -53,6 +62,39 @@ export default function InventoryTable({ products, search, expiry, page, pages }
   }
   function toggleOne(id: string) {
     setSelectedIds((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
+  }
+
+  async function handleDelete() {
+    setBulkLoading(true);
+    const res = await fetch("/api/inventory/products/bulk", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "delete", ids: [...selectedIds] }),
+    });
+    setBulkLoading(false);
+    if (!res.ok) { toast.error("Failed to delete products"); return; }
+    toast.success(`${selectedIds.size} product${selectedIds.size > 1 ? "s" : ""} deleted`);
+    setSelectedIds(new Set()); setConfirmDelete(false);
+    router.refresh();
+  }
+
+  async function handleEdit() {
+    const data: Record<string, string | boolean> = {};
+    if (editCategory.trim()) data.category = editCategory.trim();
+    if (editRx !== "") data.requiresPrescription = editRx === "true";
+    if (Object.keys(data).length === 0) { toast.error("No changes to apply"); return; }
+    setBulkLoading(true);
+    const res = await fetch("/api/inventory/products/bulk", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "update", ids: [...selectedIds], data }),
+    });
+    setBulkLoading(false);
+    if (!res.ok) { toast.error("Failed to update products"); return; }
+    toast.success(`${selectedIds.size} product${selectedIds.size > 1 ? "s" : ""} updated`);
+    setShowEdit(false); setEditCategory(""); setEditRx("");
+    setSelectedIds(new Set());
+    router.refresh();
   }
 
   return (
@@ -80,11 +122,58 @@ export default function InventoryTable({ products, search, expiry, page, pages }
       </div>
 
       {selectedIds.size > 0 && (
-        <div className="flex items-center justify-between bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm">
-          <span className="font-medium">{selectedIds.size} selected</span>
-          <button onClick={() => setSelectedIds(new Set())} className="inline-flex items-center gap-1 opacity-80 hover:opacity-100 transition-opacity">
-            <X className="w-3.5 h-3.5" /> Clear
-          </button>
+        <div className="flex items-center gap-3 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm">
+          <span className="font-medium mr-auto">{selectedIds.size} selected</span>
+          {confirmDelete ? (
+            <>
+              <span className="opacity-90">Delete {selectedIds.size} product{selectedIds.size > 1 ? "s" : ""}?</span>
+              <button onClick={handleDelete} disabled={bulkLoading} className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md font-medium disabled:opacity-50">
+                {bulkLoading ? "Deleting…" : "Confirm"}
+              </button>
+              <button onClick={() => setConfirmDelete(false)} className="opacity-80 hover:opacity-100">Cancel</button>
+            </>
+          ) : (
+            <>
+              <button onClick={() => setShowEdit(true)} className="inline-flex items-center gap-1.5 bg-white/15 hover:bg-white/25 px-3 py-1 rounded-md transition-colors">
+                <Pencil className="w-3.5 h-3.5" /> Edit
+              </button>
+              <button onClick={() => setConfirmDelete(true)} className="inline-flex items-center gap-1.5 bg-white/15 hover:bg-red-500 px-3 py-1 rounded-md transition-colors">
+                <Trash2 className="w-3.5 h-3.5" /> Delete
+              </button>
+              <button onClick={() => setSelectedIds(new Set())} className="opacity-70 hover:opacity-100 ml-1"><X className="w-4 h-4" /></button>
+            </>
+          )}
+        </div>
+      )}
+
+      {showEdit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowEdit(false)}>
+          <div className="bg-background rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-semibold text-base">Edit {selectedIds.size} Product{selectedIds.size > 1 ? "s" : ""}</h3>
+            <p className="text-xs text-muted-foreground">Only filled fields will be applied. Leave blank to keep existing values.</p>
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm font-medium block mb-1">Category</label>
+                <input value={editCategory} onChange={(e) => setEditCategory(e.target.value)} placeholder="e.g. Antibiotics"
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+              </div>
+              <div>
+                <label className="text-sm font-medium block mb-1">Requires Prescription</label>
+                <select value={editRx} onChange={(e) => setEditRx(e.target.value)}
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 bg-background">
+                  <option value="">— No change —</option>
+                  <option value="true">Yes (Rx)</option>
+                  <option value="false">No (OTC)</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button onClick={() => setShowEdit(false)} className="inline-flex items-center h-8 px-3 rounded-lg text-sm border border-border bg-background hover:bg-muted">Cancel</button>
+              <button onClick={handleEdit} disabled={bulkLoading} className="inline-flex items-center h-8 px-3 rounded-lg text-sm bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+                {bulkLoading ? "Saving…" : "Apply Changes"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
