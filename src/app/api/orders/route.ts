@@ -4,6 +4,8 @@ import { prisma } from "@/lib/db";
 import { z } from "zod";
 
 const createSchema = z.object({
+  contactId: z.string().optional(),
+  companyId: z.string().optional(),
   notes: z.string().optional(),
   items: z
     .array(
@@ -72,7 +74,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const contact = await prisma.contact.findFirst({ where: { userId: session.user.id } });
+  const isStaff = ["ADMIN", "STAFF"].includes(session.user.role as string);
+
+  let resolvedContactId: string | undefined;
+  let resolvedCompanyId: string | undefined;
+
+  if (isStaff) {
+    resolvedContactId = parsed.data.contactId;
+    resolvedCompanyId = parsed.data.companyId;
+  } else {
+    const contact = await prisma.contact.findFirst({ where: { userId: session.user.id } });
+    resolvedContactId = contact?.id;
+    resolvedCompanyId = contact?.companyId ?? undefined;
+  }
 
   const productIds = parsed.data.items.map((i) => i.productId);
   const products = await prisma.product.findMany({
@@ -112,8 +126,8 @@ export async function POST(req: NextRequest) {
   const order = await prisma.order.create({
     data: {
       orderNumber: generateOrderNumber(),
-      contactId: contact?.id,
-      companyId: contact?.companyId ?? undefined,
+      contactId: resolvedContactId,
+      companyId: resolvedCompanyId,
       notes: parsed.data.notes,
       totalAmount,
       items: { create: orderItems },
