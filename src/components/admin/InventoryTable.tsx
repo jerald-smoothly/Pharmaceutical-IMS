@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { Package } from "lucide-react";
+import { Package, X } from "lucide-react";
 import SearchInput from "@/components/shared/SearchInput";
 import NavSelect from "@/components/shared/NavSelect";
 import { ColumnPicker, useColumnPicker, ColDef } from "@/components/shared/ColumnPicker";
+import { useState, useEffect, useRef } from "react";
 
 const COLUMNS: ColDef[] = [
   { key: "sku", label: "SKU" },
@@ -39,6 +40,21 @@ interface Props {
 export default function InventoryTable({ products, search, expiry, page, pages }: Props) {
   const { visible, onChange } = useColumnPicker("rx-cols-inventory", COLUMNS);
 
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const allSelected = products.length > 0 && products.every((p) => selectedIds.has(p.id));
+  const someSelected = products.some((p) => selectedIds.has(p.id)) && !allSelected;
+  const checkAllRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { setSelectedIds(new Set()); }, [products]);
+  useEffect(() => { if (checkAllRef.current) checkAllRef.current.indeterminate = someSelected; }, [someSelected]);
+
+  function toggleAll() {
+    setSelectedIds(allSelected ? new Set() : new Set(products.map((p) => p.id)));
+  }
+  function toggleOne(id: string) {
+    setSelectedIds((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex gap-3 flex-wrap items-center">
@@ -63,6 +79,15 @@ export default function InventoryTable({ products, search, expiry, page, pages }
         <ColumnPicker columns={COLUMNS} visible={visible} onChange={onChange} />
       </div>
 
+      {selectedIds.size > 0 && (
+        <div className="flex items-center justify-between bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm">
+          <span className="font-medium">{selectedIds.size} selected</span>
+          <button onClick={() => setSelectedIds(new Set())} className="inline-flex items-center gap-1 opacity-80 hover:opacity-100 transition-opacity">
+            <X className="w-3.5 h-3.5" /> Clear
+          </button>
+        </div>
+      )}
+
       {products.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
           <Package className="w-12 h-12 mx-auto mb-4 opacity-30" />
@@ -74,6 +99,10 @@ export default function InventoryTable({ products, search, expiry, page, pages }
           <table className="w-full text-sm">
             <thead className="bg-gray-50 dark:bg-[var(--rx-surface)]">
               <tr>
+                <th className="w-10 px-4 py-3">
+                  <input ref={checkAllRef} type="checkbox" checked={allSelected} onChange={toggleAll}
+                    className="rounded border-gray-300 text-primary focus:ring-primary/50 cursor-pointer" />
+                </th>
                 {visible.has("sku") && <th className="px-4 py-3 text-left font-medium text-gray-600 dark:text-muted-foreground">SKU</th>}
                 {visible.has("name") && <th className="px-4 py-3 text-left font-medium text-gray-600 dark:text-muted-foreground">Name</th>}
                 {visible.has("category") && <th className="px-4 py-3 text-left font-medium text-gray-600 dark:text-muted-foreground">Category</th>}
@@ -83,32 +112,36 @@ export default function InventoryTable({ products, search, expiry, page, pages }
             </thead>
             <tbody className="divide-y">
               {products.map((p) => (
-                  <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-[var(--rx-surface)]">
-                    {visible.has("sku") && <td className="px-4 py-3 font-mono text-xs text-gray-500">{p.sku}</td>}
-                    {visible.has("name") && (
-                      <td className="px-4 py-3">
-                        <p className="font-medium">{p.name}</p>
-                        {p.genericName && <p className="text-xs text-muted-foreground">{p.genericName}</p>}
-                      </td>
-                    )}
-                    {visible.has("category") && <td className="px-4 py-3 text-muted-foreground">{p.category ?? "—"}</td>}
-                    {visible.has("stock") && (
-                      <td className="px-4 py-3">
-                        <span className={`font-medium ${p.stock === 0 ? "text-red-600" : p.stock < 10 ? "text-amber-600" : "text-green-700"}`}>
-                          {p.stock} {p.unit}
-                        </span>
-                      </td>
-                    )}
-                    {visible.has("rx") && (
-                      <td className="px-4 py-3">
-                        {p.requiresPrescription ? (
-                          <Badge variant="outline" className="text-blue-600 border-blue-300 text-xs">Rx</Badge>
-                        ) : (
-                          <span className="text-muted-foreground text-xs">OTC</span>
-                        )}
-                      </td>
-                    )}
-                  </tr>
+                <tr key={p.id} className={`hover:bg-gray-50 dark:hover:bg-[var(--rx-surface)] ${selectedIds.has(p.id) ? "bg-blue-50 dark:bg-blue-900/10" : ""}`}>
+                  <td className="w-10 px-4 py-3">
+                    <input type="checkbox" checked={selectedIds.has(p.id)} onChange={() => toggleOne(p.id)}
+                      className="rounded border-gray-300 text-primary focus:ring-primary/50 cursor-pointer" />
+                  </td>
+                  {visible.has("sku") && <td className="px-4 py-3 font-mono text-xs text-gray-500">{p.sku}</td>}
+                  {visible.has("name") && (
+                    <td className="px-4 py-3">
+                      <p className="font-medium">{p.name}</p>
+                      {p.genericName && <p className="text-xs text-muted-foreground">{p.genericName}</p>}
+                    </td>
+                  )}
+                  {visible.has("category") && <td className="px-4 py-3 text-muted-foreground">{p.category ?? "—"}</td>}
+                  {visible.has("stock") && (
+                    <td className="px-4 py-3">
+                      <span className={`font-medium ${p.stock === 0 ? "text-red-600" : p.stock < 10 ? "text-amber-600" : "text-green-700"}`}>
+                        {p.stock} {p.unit}
+                      </span>
+                    </td>
+                  )}
+                  {visible.has("rx") && (
+                    <td className="px-4 py-3">
+                      {p.requiresPrescription ? (
+                        <Badge variant="outline" className="text-blue-600 border-blue-300 text-xs">Rx</Badge>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">OTC</span>
+                      )}
+                    </td>
+                  )}
+                </tr>
               ))}
             </tbody>
           </table>

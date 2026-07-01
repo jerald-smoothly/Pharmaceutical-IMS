@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { Users, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
+import { Users, ChevronUp, ChevronDown, ChevronsUpDown, X } from "lucide-react";
 import SearchInput from "@/components/shared/SearchInput";
 import { ColumnPicker, useColumnPicker, ColDef } from "@/components/shared/ColumnPicker";
+import { useState, useEffect, useRef } from "react";
 
 const COLUMNS: ColDef[] = [
   { key: "name", label: "Name" },
@@ -62,6 +63,21 @@ export default function ContactsTable({ contacts, search, sort, dir, page, pages
   const { visible, onChange } = useColumnPicker("rx-cols-contacts", COLUMNS);
   const sh = { sort, dir, search };
 
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const allSelected = contacts.length > 0 && contacts.every((c) => selectedIds.has(c.id));
+  const someSelected = contacts.some((c) => selectedIds.has(c.id)) && !allSelected;
+  const checkAllRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { setSelectedIds(new Set()); }, [contacts]);
+  useEffect(() => { if (checkAllRef.current) checkAllRef.current.indeterminate = someSelected; }, [someSelected]);
+
+  function toggleAll() {
+    setSelectedIds(allSelected ? new Set() : new Set(contacts.map((c) => c.id)));
+  }
+  function toggleOne(id: string) {
+    setSelectedIds((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex gap-3 items-center">
@@ -74,6 +90,15 @@ export default function ContactsTable({ contacts, search, sort, dir, page, pages
         <ColumnPicker columns={COLUMNS} visible={visible} onChange={onChange} />
       </div>
 
+      {selectedIds.size > 0 && (
+        <div className="flex items-center justify-between bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm">
+          <span className="font-medium">{selectedIds.size} selected</span>
+          <button onClick={() => setSelectedIds(new Set())} className="inline-flex items-center gap-1 opacity-80 hover:opacity-100 transition-opacity">
+            <X className="w-3.5 h-3.5" /> Clear
+          </button>
+        </div>
+      )}
+
       {contacts.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
           <Users className="w-12 h-12 mx-auto mb-4 opacity-30" />
@@ -85,6 +110,10 @@ export default function ContactsTable({ contacts, search, sort, dir, page, pages
           <table className="w-full text-sm">
             <thead className="bg-gray-50 dark:bg-[var(--rx-surface)]">
               <tr>
+                <th className="w-10 px-4 py-3">
+                  <input ref={checkAllRef} type="checkbox" checked={allSelected} onChange={toggleAll}
+                    className="rounded border-gray-300 text-primary focus:ring-primary/50 cursor-pointer" />
+                </th>
                 <SortHeader label="Name"    col="name"    {...sh} show={visible.has("name")} />
                 <SortHeader label="Company" col="company" {...sh} show={visible.has("company")} />
                 <SortHeader label="Title"   col="title"   {...sh} show={visible.has("title")} />
@@ -94,7 +123,11 @@ export default function ContactsTable({ contacts, search, sort, dir, page, pages
             </thead>
             <tbody className="divide-y">
               {contacts.map((c) => (
-                <tr key={c.id} className="hover:bg-gray-50 dark:hover:bg-[var(--rx-surface)]">
+                <tr key={c.id} className={`hover:bg-gray-50 dark:hover:bg-[var(--rx-surface)] ${selectedIds.has(c.id) ? "bg-blue-50 dark:bg-blue-900/10" : ""}`}>
+                  <td className="w-10 px-4 py-3">
+                    <input type="checkbox" checked={selectedIds.has(c.id)} onChange={() => toggleOne(c.id)}
+                      className="rounded border-gray-300 text-primary focus:ring-primary/50 cursor-pointer" />
+                  </td>
                   {visible.has("name") && (
                     <td className="px-4 py-3">
                       <Link href={`/crm/contacts/${c.id}`} className="font-medium text-blue-600 hover:underline">
