@@ -2,7 +2,14 @@ import { prisma } from "@/lib/db";
 import Link from "next/link";
 import OrdersTable from "@/components/admin/OrdersTable";
 
-const statuses = ["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"];
+const statuses: { value: string; label: string }[] = [
+  { value: "PENDING",    label: "Pending" },
+  { value: "CONFIRMED",  label: "Confirmed" },
+  { value: "PROCESSING", label: "Processing" },
+  { value: "SHIPPED",    label: "Shipped" },
+  { value: "DELIVERED",  label: "Delivered" },
+  { value: "CANCELLED",  label: "Cancelled" },
+];
 
 async function getOrders(status: string, page: number) {
   const limit = 25;
@@ -62,8 +69,8 @@ export default async function OrdersPage({ searchParams }: Props) {
           All
         </Link>
         {statuses.map((s) => (
-          <Link key={s} href={`?status=${s}`} className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${status === s ? "bg-gray-900 text-white dark:bg-foreground dark:text-background" : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-[var(--rx-surface)] dark:text-muted-foreground dark:hover:bg-muted"}`}>
-            {s}
+          <Link key={s.value} href={`?status=${s.value}`} className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${status === s.value ? "bg-gray-900 text-white dark:bg-foreground dark:text-background" : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-[var(--rx-surface)] dark:text-muted-foreground dark:hover:bg-muted"}`}>
+            {s.label}
           </Link>
         ))}
       </div>

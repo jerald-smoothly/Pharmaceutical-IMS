@@ -89,7 +89,9 @@ export default function OrdersTable({ orders, status, page, pages }: Props) {
                   {visible.has("total")  && <td className="px-4 py-3 font-medium">${o.totalAmount.toFixed(2)}</td>}
                   {visible.has("status") && (
                     <td className="px-4 py-3">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[o.status] ?? ""}`}>{o.status}</span>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[o.status] ?? ""}`}>
+                        {o.status.charAt(0) + o.status.slice(1).toLowerCase()}
+                      </span>
                     </td>
                   )}
                   {visible.has("date") && (
