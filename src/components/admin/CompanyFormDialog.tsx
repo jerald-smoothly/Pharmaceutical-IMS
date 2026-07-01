@@ -321,7 +321,7 @@ export default function CompanyFormDialog({ children, company }: Props) {
 
               {/* Website */}
               <div className="col-span-2">
-                <label className="text-sm font-medium text-gray-700 block mb-1">Website</label>
+                <label className="text-sm font-medium text-gray-700 block mb-1">Domain Name</label>
                 <input
                   name="website"
                   defaultValue={company?.website ?? ""}
@@ -332,7 +332,7 @@ export default function CompanyFormDialog({ children, company }: Props) {
 
               {/* Phone with country dropdown */}
               <div className="col-span-2">
-                <label className="text-sm font-medium text-gray-700 block mb-1">Phone</label>
+                <label className="text-sm font-medium text-gray-700 block mb-1">Company Phone Number</label>
                 <div className="flex gap-2">
                   <select
                     value={phoneCountry}
@@ -366,7 +366,7 @@ export default function CompanyFormDialog({ children, company }: Props) {
 
               {/* Address */}
               <div className="col-span-2">
-                <label className="text-sm font-medium text-gray-700 block mb-1">Address</label>
+                <label className="text-sm font-medium text-gray-700 block mb-1">Street Address</label>
                 <input
                   name="address"
                   defaultValue={company?.address ?? ""}
