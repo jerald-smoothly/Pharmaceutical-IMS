@@ -211,7 +211,6 @@ export default function ContactFormDialog({ children, contact, companies }: Prop
                   name="firstName"
                   required
                   defaultValue={contact?.firstName ?? ""}
-                  placeholder="John"
                   className={inputClass}
                   onChange={(e) => { e.target.value = e.target.value.replace(/[^A-Za-z]/g, ""); }}
                   onBlur={(e) => {
@@ -226,7 +225,6 @@ export default function ContactFormDialog({ children, contact, companies }: Prop
                   name="lastName"
                   required
                   defaultValue={contact?.lastName ?? ""}
-                  placeholder="Smith"
                   className={inputClass}
                   onChange={(e) => { e.target.value = e.target.value.replace(/[^A-Za-z\s-]/g, ""); }}
                   onBlur={(e) => {
@@ -264,7 +262,6 @@ export default function ContactFormDialog({ children, contact, companies }: Prop
                       value={phoneInput}
                       onChange={(e) => handlePhoneChange(e.target.value)}
                       onBlur={handlePhoneBlur}
-                      placeholder={getPlaceholder(country)}
                       className={inputClass}
                     />
                     {phoneError && <p className="text-xs text-red-500 mt-1">{phoneError}</p>}
@@ -273,11 +270,11 @@ export default function ContactFormDialog({ children, contact, companies }: Prop
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700 block mb-1">Title</label>
-                <input name="title" defaultValue={contact?.title ?? ""} placeholder="e.g. Procurement Manager" className={inputClass} />
+                <input name="title" defaultValue={contact?.title ?? ""} className={inputClass} />
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700 block mb-1">Department</label>
-                <input name="department" defaultValue={contact?.department ?? ""} placeholder="e.g. Finance" className={inputClass} />
+                <input name="department" defaultValue={contact?.department ?? ""} className={inputClass} />
               </div>
               <div className="col-span-2">
                 <label className="text-sm font-medium text-gray-700 block mb-1">Company</label>
@@ -290,7 +287,7 @@ export default function ContactFormDialog({ children, contact, companies }: Prop
               </div>
               <div className="col-span-2">
                 <label className="text-sm font-medium text-gray-700 block mb-1">Notes</label>
-                <textarea name="notes" defaultValue={contact?.notes ?? ""} rows={3} placeholder="Internal notes…"
+                <textarea name="notes" defaultValue={contact?.notes ?? ""} rows={3}
                   className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
               </div>
             </div>

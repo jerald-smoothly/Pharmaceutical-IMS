@@ -66,7 +66,6 @@ export default function ProductFormDialog({ children }: Props) {
                 <input
                   name="sku"
                   required
-                  placeholder="e.g. AMX500-CAP"
                   onBlur={(e) => { e.target.value = e.target.value.trim().toUpperCase(); }}
                   className="w-full border rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase"
                 />
@@ -79,7 +78,6 @@ export default function ProductFormDialog({ children }: Props) {
                   name="name"
                   required
                   minLength={2}
-                  placeholder="e.g. Amoxicillin 500mg Capsules"
                   className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -88,7 +86,6 @@ export default function ProductFormDialog({ children }: Props) {
                 <label className="text-sm font-medium text-gray-700 block mb-1">Generic Name</label>
                 <input
                   name="genericName"
-                  placeholder="e.g. Amoxicillin"
                   className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -97,7 +94,6 @@ export default function ProductFormDialog({ children }: Props) {
                 <label className="text-sm font-medium text-gray-700 block mb-1">Manufacturer</label>
                 <input
                   name="manufacturer"
-                  placeholder="e.g. Pharma Corp"
                   className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -106,7 +102,6 @@ export default function ProductFormDialog({ children }: Props) {
                 <label className="text-sm font-medium text-gray-700 block mb-1">Category</label>
                 <input
                   name="category"
-                  placeholder="e.g. Antibiotics"
                   className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -129,7 +124,6 @@ export default function ProductFormDialog({ children }: Props) {
                 <textarea
                   name="description"
                   rows={2}
-                  placeholder="Optional product description..."
                   className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                 />
               </div>

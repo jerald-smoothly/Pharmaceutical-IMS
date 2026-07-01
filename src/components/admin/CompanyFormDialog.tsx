@@ -290,19 +290,19 @@ export default function CompanyFormDialog({ children, company }: Props) {
               <div className="col-span-2">
                 <label className="text-sm font-medium text-gray-700 block mb-1">Company Name *</label>
                 <input name="name" required defaultValue={company?.name ?? ""}
-                  placeholder="Acme Corp Inc." className={inputClass} />
+                  className={inputClass} />
               </div>
 
               <div className="col-span-2">
                 <label className="text-sm font-medium text-gray-700 block mb-1">Industry</label>
                 <input name="industry" defaultValue={company?.industry ?? ""}
-                  placeholder="e.g. Healthcare" className={inputClass} />
+                  className={inputClass} />
               </div>
 
               <div className="col-span-2">
                 <label className="text-sm font-medium text-gray-700 block mb-1">Website / Domain</label>
                 <input name="website" defaultValue={company?.website ?? ""}
-                  placeholder="acmecorp.com" className={inputClass} />
+                  className={inputClass} />
               </div>
 
               <div className="col-span-2">
@@ -330,7 +330,6 @@ export default function CompanyFormDialog({ children, company }: Props) {
                       value={phoneInput}
                       onChange={(e) => handlePhoneChange(e.target.value)}
                       onBlur={handlePhoneBlur}
-                      placeholder={getPlaceholder(phoneCountry)}
                       className={inputClass}
                     />
                     {phoneError && <p className="text-xs text-red-500 mt-1">{phoneError}</p>}
@@ -341,13 +340,13 @@ export default function CompanyFormDialog({ children, company }: Props) {
               <div className="col-span-2">
                 <label className="text-sm font-medium text-gray-700 block mb-1">Email</label>
                 <input name="email" type="email" defaultValue={company?.email ?? ""}
-                  placeholder="contact@company.com" className={inputClass} />
+                  className={inputClass} />
               </div>
 
               <div className="col-span-2">
                 <label className="text-sm font-medium text-gray-700 block mb-1">Street Address</label>
                 <input name="address" defaultValue={company?.address ?? ""}
-                  placeholder="123 Guyabano St." className={inputClass} />
+                  className={inputClass} />
               </div>
 
               <div className="col-span-2">
@@ -398,19 +397,18 @@ export default function CompanyFormDialog({ children, company }: Props) {
               <div>
                 <label className="text-sm font-medium text-gray-700 block mb-1">Postal Code</label>
                 <input name="postalCode" value={postalCode} onChange={(e) => setPostalCode(e.target.value)}
-                  placeholder="10001" className={inputClass} />
+                  className={inputClass} />
               </div>
 
               <div>
                 <label className="text-sm font-medium text-gray-700 block mb-1">Tax ID</label>
                 <input name="taxId" defaultValue={company?.taxId ?? ""}
-                  placeholder="XX-XXXXXXX" className={inputClass} />
+                  className={inputClass} />
               </div>
 
               <div className="col-span-2">
                 <label className="text-sm font-medium text-gray-700 block mb-1">Notes</label>
                 <textarea name="notes" defaultValue={company?.notes ?? ""} rows={3}
-                  placeholder="Internal notes…"
                   className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
               </div>
 
