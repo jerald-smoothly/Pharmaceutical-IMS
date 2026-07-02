@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Hash } from "lucide-react";
 import Link from "next/link";
 import OrderStatusUpdater from "@/components/admin/OrderStatusUpdater";
 
@@ -20,7 +21,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
     include: {
       company: true,
       contact: true,
-      items: { include: { product: { select: { name: true, sku: true, unit: true } } } },
+      items: { include: { product: { select: { id: true, productNumber: true, name: true, sku: true, unit: true } } } },
     },
   });
 
@@ -31,7 +32,12 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
       <div className="flex items-start justify-between">
         <div>
           <Link href="/orders" className="text-sm text-muted-foreground hover:text-foreground">← Orders</Link>
-          <h1 className="text-2xl font-bold text-gray-900 mt-1">{order.orderNumber}</h1>
+          <div className="flex items-center gap-2 mt-1">
+            <Hash className="w-4 h-4 text-muted-foreground" />
+            <span className="text-sm text-muted-foreground">Order ID:</span>
+            <span className="font-mono text-sm bg-gray-100 px-1.5 py-0.5 rounded text-gray-900">{order.orderNumber}</span>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mt-0.5">Order Details</h1>
           <div className="flex items-center gap-3 mt-2">
             <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[order.status]}`}>{order.status}</span>
             <span className="text-sm text-muted-foreground">{new Date(order.placedAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</span>
@@ -89,7 +95,9 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                   {order.items.map((item) => (
                     <tr key={item.id}>
                       <td className="py-3">
-                        <p className="font-medium">{item.product.name}</p>
+                        <Link href={`/inventory/${item.product.id}`} className="font-medium text-blue-600 hover:underline">
+                          {item.product.name}
+                        </Link>
                         <p className="text-xs text-muted-foreground">{item.product.sku}</p>
                       </td>
                       <td className="py-3 text-right">{item.quantity} {item.product.unit}</td>

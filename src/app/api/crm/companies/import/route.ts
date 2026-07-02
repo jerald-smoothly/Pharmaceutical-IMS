@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { nextCompanyId } from "@/lib/ids";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
 
@@ -91,6 +92,7 @@ export async function POST(req: NextRequest) {
       } else {
         await prisma.company.create({
           data: {
+            companyNumber: await nextCompanyId(),
             name,
             industry: row.industry || null,
             email: row.email || null,

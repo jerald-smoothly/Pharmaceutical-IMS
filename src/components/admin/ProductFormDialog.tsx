@@ -7,6 +7,44 @@ import { useRouter } from "next/navigation";
 
 const UNITS = ["box", "strip", "tablet", "capsule", "vial", "bottle", "ampule", "sachet", "tube", "piece"];
 
+const CATEGORIES = [
+  "Analgesics",
+  "Antibiotics",
+  "Antivirals",
+  "Antifungals",
+  "Antiparasitics",
+  "Cardiovascular",
+  "Dermatology",
+  "Diabetes & Endocrinology",
+  "Gastrointestinal",
+  "Immunology",
+  "Neurology & CNS",
+  "Oncology",
+  "Ophthalmology",
+  "Psychiatric & Mental Health",
+  "Respiratory",
+  "Vitamins & Supplements",
+  "Vaccines",
+  "Others",
+];
+
+const inputClass = "w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500";
+
+function formatExpiryInput(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 8);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+}
+
+function isValidExpiry(value: string): boolean {
+  if (!/^\d{2}\/\d{2}\/\d{4}$/.test(value)) return false;
+  const [m, d, y] = value.split("/").map(Number);
+  if (m < 1 || m > 12 || d < 1 || d > 31 || y < 2000) return false;
+  const date = new Date(Date.UTC(y, m - 1, d));
+  return date.getUTCMonth() === m - 1 && date.getUTCDate() === d;
+}
+
 interface Props {
   children: React.ReactNode;
 }
@@ -16,9 +54,43 @@ export default function ProductFormDialog({ children }: Props) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [rxRequired, setRxRequired] = useState(false);
+  const [expiryDate, setExpiryDate] = useState("");
+  const [expiryError, setExpiryError] = useState("");
+
+  function resetForm() {
+    setRxRequired(false);
+    setExpiryDate("");
+    setExpiryError("");
+  }
+
+  function handleExpiryChange(raw: string) {
+    const formatted = formatExpiryInput(raw);
+    setExpiryDate(formatted);
+    if (expiryError && formatted.length === 10) {
+      setExpiryError(isValidExpiry(formatted) ? "" : "Invalid date.");
+    } else {
+      setExpiryError("");
+    }
+  }
+
+  function handleExpiryBlur() {
+    if (!expiryDate) return;
+    if (!isValidExpiry(expiryDate)) {
+      setExpiryError("Enter a valid date in MM/DD/YYYY format.");
+    } else {
+      setExpiryError("");
+    }
+  }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
+    if (expiryDate && !isValidExpiry(expiryDate)) {
+      setExpiryError("Enter a valid date in MM/DD/YYYY format.");
+      toast.error("Please fix the expiry date.");
+      return;
+    }
+
     setLoading(true);
 
     const fd = new FormData(e.currentTarget);
@@ -29,6 +101,10 @@ export default function ProductFormDialog({ children }: Props) {
     });
 
     data.requiresPrescription = rxRequired;
+
+    if (expiryDate) {
+      data.expiryDate = expiryDate;
+    }
 
     const res = await fetch("/api/inventory/products", {
       method: "POST",
@@ -46,15 +122,15 @@ export default function ProductFormDialog({ children }: Props) {
 
     toast.success("Product created");
     setOpen(false);
-    setRxRequired(false);
+    resetForm();
     router.refresh();
   }
 
   return (
     <>
       <span onClick={() => setOpen(true)} className="cursor-pointer">{children}</span>
-      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setRxRequired(false); }}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>New Product</DialogTitle>
           </DialogHeader>
@@ -67,77 +143,68 @@ export default function ProductFormDialog({ children }: Props) {
                   name="sku"
                   required
                   onBlur={(e) => { e.target.value = e.target.value.trim().toUpperCase(); }}
-                  className="w-full border rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase"
+                  className={`${inputClass} font-mono uppercase`}
                 />
                 <p className="text-xs text-muted-foreground mt-1">Must be unique. Auto-uppercased.</p>
               </div>
 
               <div className="col-span-2">
                 <label className="text-sm font-medium text-gray-700 block mb-1">Product Name *</label>
-                <input
-                  name="name"
-                  required
-                  minLength={2}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-gray-700 block mb-1">Generic Name</label>
-                <input
-                  name="genericName"
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                <input name="name" required minLength={2} className={inputClass} />
               </div>
 
               <div>
                 <label className="text-sm font-medium text-gray-700 block mb-1">Manufacturer</label>
-                <input
-                  name="manufacturer"
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                <input name="manufacturer" className={inputClass} />
               </div>
 
               <div>
                 <label className="text-sm font-medium text-gray-700 block mb-1">Category</label>
-                <input
-                  name="category"
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-gray-700 block mb-1">Unit Price *</label>
-                <input
-                  name="unitPrice"
-                  type="number"
-                  required
-                  min="0.01"
-                  step="0.01"
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                <select name="category" defaultValue="" className={`${inputClass} bg-white`}>
+                  <option value="">— Select —</option>
+                  {CATEGORIES.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
               </div>
 
               <div>
                 <label className="text-sm font-medium text-gray-700 block mb-1">Unit</label>
-                <select
-                  name="unit"
-                  defaultValue="box"
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                >
+                <select name="unit" defaultValue="" className={`${inputClass} bg-white`}>
+                  <option value="">— Select —</option>
                   {UNITS.map((u) => (
                     <option key={u} value={u}>{u}</option>
                   ))}
                 </select>
               </div>
 
-              <div className="col-span-2">
-                <label className="text-sm font-medium text-gray-700 block mb-1">Description</label>
-                <textarea
-                  name="description"
-                  rows={2}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              <div>
+                <label className="text-sm font-medium text-gray-700 block mb-1">Expiry Date</label>
+                <input
+                  type="text"
+                  value={expiryDate}
+                  onChange={(e) => handleExpiryChange(e.target.value)}
+                  onBlur={handleExpiryBlur}
+                  maxLength={10}
+                  className={`${inputClass}${expiryError ? " border-red-400 focus:ring-red-400" : ""}`}
                 />
+                {expiryError ? (
+                  <p className="text-xs text-red-500 mt-1">{expiryError}</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground mt-1">MM/DD/YYYY</p>
+                )}
+              </div>
+
+              <div className="col-span-2">
+                <label className="text-sm font-medium text-gray-700 block mb-1">Stock</label>
+                <input
+                  name="initialStock"
+                  type="number"
+                  min="0"
+                  step="1"
+                  className={inputClass}
+                />
+                <p className="text-xs text-muted-foreground mt-1">Units currently on hand. Leave blank to add stock later.</p>
               </div>
 
               <div className="col-span-2">

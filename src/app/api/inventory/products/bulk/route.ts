@@ -12,12 +12,10 @@ const schema = z.discriminatedUnion("action", [
     action: z.literal("update"),
     ids: z.array(z.string()).min(1),
     data: z.object({
-      genericName:          z.string().nullable().optional(),
       manufacturer:         z.string().nullable().optional(),
       category:             z.string().nullable().optional(),
-      description:          z.string().nullable().optional(),
       unit:                 z.string().optional(),
-      unitPrice:            z.number().optional(),
+      expiryDate:           z.string().regex(/^\d{2}\/\d{2}\/\d{4}$/).optional(),
       requiresPrescription: z.boolean().optional(),
     }),
   }),
@@ -45,7 +43,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ deleted: ids.length });
   }
 
-  const updateData = parsed.data.data;
+  const rawData = parsed.data.data;
+  const updateData: Record<string, unknown> = { ...rawData };
+  if (typeof rawData.expiryDate === "string") {
+    const [m, d, y] = rawData.expiryDate.split("/").map(Number);
+    updateData.expiryDate = new Date(Date.UTC(y, m - 1, d));
+  }
   await prisma.product.updateMany({ where: { id: { in: ids } }, data: updateData });
   await prisma.auditLog.create({
     data: { userId: session.user.id, action: "BULK_UPDATE", entity: "Product", entityId: ids.join(","), after: updateData },

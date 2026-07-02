@@ -161,8 +161,8 @@ export default function ImportStockClient({ onImportComplete }: Props) {
               {uploading ? "Importing..." : "Import Stock"}
             </Button>
             <a
-              href="/templates/stock-import-template.csv"
-              download
+              href="/api/inventory/template"
+              download="stock-import-template.csv"
               className="inline-flex items-center h-8 px-2.5 rounded-lg text-sm font-medium border border-border bg-background hover:bg-muted transition-all"
             >
               Download Template
@@ -226,7 +226,7 @@ export default function ImportStockClient({ onImportComplete }: Props) {
             {[
               ["sku *", "Unique product code (must already exist in inventory)"],
               ["product_name", "Product name (optional, not used for lookup)"],
-              ["quantity", "Leave empty to skip. Positive = add stock. Negative = remove stock."],
+              ["quantity", "Leave blank to skip this row. Positive number adds to existing stock. Negative number deducts from existing stock — stock cannot go below zero."],
               ["expiry_date *", "Batch expiry date — YYYY-MM-DD format"],
             ].map(([col, desc]) => (
               <div key={col} className="flex gap-3">

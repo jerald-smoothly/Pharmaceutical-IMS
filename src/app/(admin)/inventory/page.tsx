@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { Card, CardContent } from "@/components/ui/card";
 import { Upload, Package, Plus } from "lucide-react";
 import ProductFormDialog from "@/components/admin/ProductFormDialog";
 import CopyEmbedButton from "@/components/admin/CopyEmbedButton";
@@ -15,7 +14,6 @@ async function getProducts(search: string, page: number, expiry: string) {
         OR: [
           { name: { contains: search, mode: "insensitive" as const } },
           { sku: { contains: search, mode: "insensitive" as const } },
-          { genericName: { contains: search, mode: "insensitive" as const } },
         ],
       }
     : {};
@@ -31,7 +29,7 @@ async function getProducts(search: string, page: number, expiry: string) {
 
   const where = { isActive: true, ...searchWhere, ...expiryWhere };
 
-  const [products, total, totalActive] = await Promise.all([
+  const [products, total] = await Promise.all([
     prisma.product.findMany({
       where,
       include: {
@@ -45,7 +43,6 @@ async function getProducts(search: string, page: number, expiry: string) {
       take: limit,
     }),
     prisma.product.count({ where }),
-    prisma.product.count({ where: { isActive: true } }),
   ]);
 
   return {
@@ -55,17 +52,15 @@ async function getProducts(search: string, page: number, expiry: string) {
         id: p.id,
         sku: p.sku,
         name: p.name,
-        genericName: p.genericName,
         category: p.category,
-        unitPrice: Number(p.unitPrice),
         unit: p.unit,
+        expiryDate: p.expiryDate?.toISOString() ?? null,
         requiresPrescription: p.requiresPrescription,
         stock: nonExpired.reduce((s, b) => s + b.quantityIn - b.quantityOut - b.quantityOnHold, 0),
         earliestExpiry: p.batches[0]?.expiryDate?.toISOString() ?? null,
       };
     }),
     total,
-    totalActive,
     pages: Math.ceil(total / limit),
   };
 }
@@ -79,7 +74,7 @@ export default async function InventoryPage({ searchParams }: Props) {
   const search = params.search ?? "";
   const page = parseInt(params.page ?? "1");
   const expiry = params.expiry ?? "";
-  const { products, total, pages, totalActive } = await getProducts(search, page, expiry);
+  const { products, total, pages } = await getProducts(search, page, expiry);
 
   return (
     <div className="p-8 space-y-6">
@@ -106,21 +101,7 @@ export default async function InventoryPage({ searchParams }: Props) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Products</p>
-                <p className="text-3xl font-bold mt-1">{totalActive}</p>
-              </div>
-              <Package className="w-8 h-8 text-blue-600" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <InventoryTable products={products} search={search} expiry={expiry} page={page} pages={pages} />
+<InventoryTable products={products} search={search} expiry={expiry} page={page} pages={pages} />
     </div>
   );
 }

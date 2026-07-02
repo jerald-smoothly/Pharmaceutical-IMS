@@ -1,15 +1,16 @@
 import { prisma } from "@/lib/db";
 import { notFound } from "next/navigation";
-import { Mail, Phone, Briefcase, Hash, FileText, Building2, ShoppingCart, Globe } from "lucide-react";
+import { Mail, Phone, Briefcase, Hash, FileText } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import ContactFormDialog from "@/components/admin/ContactFormDialog";
 import AssignCompanyDialog from "@/components/admin/AssignCompanyDialog";
+import AssociationsPanel, { AssocSection } from "@/components/admin/AssociationsPanel";
 
 export default async function ContactDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  const [contact, companies] = await Promise.all([
+  const [contact, companies, orderedProducts] = await Promise.all([
     prisma.contact.findUnique({
       where: { id },
       include: {
@@ -22,55 +23,41 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),
+    prisma.product.findMany({
+      where: { orderItems: { some: { order: { contactId: id } } } },
+      select: { id: true, name: true, sku: true, productNumber: true },
+      orderBy: { name: "asc" },
+    }),
   ]);
 
   if (!contact) notFound();
 
-  const totalOrders = contact.orders.length;
-
   return (
-    <div className="p-8 space-y-6 max-w-5xl">
-      {/* Header — matches company profile structure */}
-      <div className="flex items-start justify-between">
-        <div>
-          <Link href="/crm/contacts" className="text-sm text-muted-foreground hover:text-foreground">
-            ← Contacts
-          </Link>
-          <h1 className="text-2xl font-bold text-gray-900 mt-1">
-            {contact.firstName} {contact.lastName}
-          </h1>
-          {(contact.title || contact.department) && (
-            <p className="text-muted-foreground">
-              {[contact.title, contact.department].filter(Boolean).join(" · ")}
-            </p>
-          )}
-        </div>
-        <ContactFormDialog contact={contact} companies={companies}>
-          <button className="inline-flex items-center h-8 px-3 rounded-lg text-sm font-medium border border-border bg-background hover:bg-muted transition-all">
-            Edit Contact
-          </button>
-        </ContactFormDialog>
-      </div>
-
-      {/* Stats — above grid, matching company profile placement */}
-      <Card>
-        <CardContent className="pt-5">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
-              <ShoppingCart className="w-4 h-4 text-blue-600" />
-            </div>
+    <div className="p-8">
+      <div className="flex gap-8 items-start">
+        {/* Main content */}
+        <div className="flex-1 min-w-0 space-y-6">
+          <div className="flex items-start justify-between">
             <div>
-              <p className="text-2xl font-bold text-gray-900">{totalOrders}</p>
-              <p className="text-xs text-muted-foreground">Total Orders</p>
+              <Link href="/crm/contacts" className="text-sm text-muted-foreground hover:text-foreground">
+                ← Contacts
+              </Link>
+              <h1 className="text-2xl font-bold text-gray-900 mt-1">
+                {contact.firstName} {contact.lastName}
+              </h1>
+              {(contact.title || contact.department) && (
+                <p className="text-muted-foreground">
+                  {[contact.title, contact.department].filter(Boolean).join(" · ")}
+                </p>
+              )}
             </div>
+            <ContactFormDialog contact={contact}>
+              <button className="inline-flex items-center h-8 px-3 rounded-lg text-sm font-medium border border-border bg-background hover:bg-muted transition-all">
+                Edit Contact
+              </button>
+            </ContactFormDialog>
           </div>
-        </CardContent>
-      </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left sidebar */}
-        <div className="lg:col-span-1 space-y-4">
-          {/* Personal Information — icon-based rows, same style as company Details */}
           <Card>
             <CardHeader><CardTitle className="text-base">Personal Information</CardTitle></CardHeader>
             <CardContent className="space-y-3 text-sm">
@@ -95,6 +82,7 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
               {contact.customerId && (
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Hash className="w-4 h-4 shrink-0" />
+                  <span className="text-xs">Contact ID:</span>
                   <span className="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded text-gray-900">
                     {contact.customerId}
                   </span>
@@ -109,105 +97,84 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
             </CardContent>
           </Card>
 
-          {/* Company */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Building2 className="w-4 h-4" />
-                  Company
-                </CardTitle>
-                <AssignCompanyDialog
-                  contactId={contact.id}
-                  currentCompanyId={contact.companyId}
-                  companies={companies}
-                />
-              </div>
-            </CardHeader>
-            <CardContent>
-              {contact.company ? (
-                <div>
-                  <Link href={`/crm/companies/${contact.company.id}`} className="group block">
-                    <p className="font-medium text-sm group-hover:text-blue-600 transition-colors">
-                      {contact.company.name}
-                    </p>
-                  </Link>
-                  {(contact.company.email || contact.company.phone || contact.company.website) && (
-                    <div className="mt-3 pt-3 border-t space-y-1.5">
-                      {contact.company.email && (
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Mail className="w-3.5 h-3.5 shrink-0" />
-                          <a href={`mailto:${contact.company.email}`} className="hover:text-foreground truncate">
-                            {contact.company.email}
-                          </a>
-                        </div>
-                      )}
-                      {contact.company.phone && (
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Phone className="w-3.5 h-3.5 shrink-0" />
-                          {contact.company.phone}
-                        </div>
-                      )}
-                      {contact.company.website && (
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Globe className="w-3.5 h-3.5 shrink-0" />
-                          <a href={contact.company.website} target="_blank" rel="noreferrer" className="hover:text-foreground truncate">
-                            {contact.company.website}
-                          </a>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">No company assigned.</p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Right — orders table */}
-        <div className="lg:col-span-2">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <ShoppingCart className="w-4 h-4" />
-                Orders Placed
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <table className="w-full text-sm">
-                <thead className="border-b bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-2.5 text-center font-medium text-gray-600">Order Number</th>
-                    <th className="px-4 py-2.5 text-center font-medium text-gray-600">Order Date</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {contact.orders.length === 0 ? (
+          {contact.orders.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Orders Placed ({contact.orders.length})</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <table className="w-full text-sm">
+                  <thead className="border-b bg-gray-50">
                     <tr>
-                      <td colSpan={2} className="px-4 py-8 text-center text-sm text-muted-foreground">
-                        No orders placed yet.
-                      </td>
+                      <th className="px-4 py-2.5 text-left font-medium text-gray-600">Order ID</th>
+                      <th className="px-4 py-2.5 text-left font-medium text-gray-600">Status</th>
+                      <th className="px-4 py-2.5 text-left font-medium text-gray-600">Date</th>
                     </tr>
-                  ) : (
-                    contact.orders.map((o) => (
+                  </thead>
+                  <tbody className="divide-y">
+                    {contact.orders.map((o) => (
                       <tr key={o.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 text-center">
+                        <td className="px-4 py-3">
                           <Link href={`/orders/${o.id}`} className="font-mono text-xs font-semibold text-blue-600 hover:underline">
                             {o.orderNumber}
                           </Link>
                         </td>
-                        <td className="px-4 py-3 text-center text-muted-foreground">
+                        <td className="px-4 py-3 text-muted-foreground text-xs capitalize">
+                          {o.status.charAt(0) + o.status.slice(1).toLowerCase()}
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">
                           {new Date(o.placedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </CardContent>
-          </Card>
+                    ))}
+                  </tbody>
+                </table>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Associations panel */}
+        <div className="w-72 shrink-0 sticky top-8">
+          <AssociationsPanel>
+            <AssocSection
+              title="Company"
+              items={contact.company ? [{
+                id: contact.company.id,
+                label: contact.company.name,
+                href: `/crm/companies/${contact.company.id}`,
+              }] : []}
+              action={
+                <AssignCompanyDialog
+                  contactId={contact.id}
+                  currentCompanyId={contact.companyId ?? null}
+                  companies={companies}
+                />
+              }
+              emptyText="No company assigned"
+            />
+            <AssocSection
+              title="Orders"
+              items={contact.orders.map((o) => ({
+                id: o.id,
+                label: `Order #${o.orderNumber}`,
+                sublabel: new Date(o.placedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+                href: `/orders/${o.id}`,
+              }))}
+              emptyText="No orders yet"
+            />
+            <AssocSection
+              title="Inventory"
+              note="Orders"
+              items={orderedProducts.map((p) => ({
+                id: p.id,
+                label: p.name,
+                sublabel: p.sku,
+                href: `/inventory/${p.id}`,
+              }))}
+              emptyText="No inventory ordered"
+            />
+          </AssociationsPanel>
         </div>
       </div>
     </div>

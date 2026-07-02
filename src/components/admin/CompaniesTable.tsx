@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { Building2, Users, ShoppingCart, ChevronUp, ChevronDown, ChevronsUpDown, X, Pencil, Trash2 } from "lucide-react";
 import SearchInput from "@/components/shared/SearchInput";
-import { ColumnPicker, useColumnPicker, ColDef } from "@/components/shared/ColumnPicker";
+import { ColumnPicker, applyFilters } from "@/components/shared/ColumnPicker";
+import type { ColDef, FilterRule } from "@/components/shared/ColumnPicker";
+import { EditColumns, useEditColumns } from "@/components/shared/EditColumns";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -23,11 +25,15 @@ const EDIT_FIELDS = [
 ];
 
 const COLUMNS: ColDef[] = [
-  { key: "company", label: "Company" },
+  { key: "company",  label: "Company" },
   { key: "location", label: "Location" },
   { key: "contacts", label: "Contacts" },
-  { key: "orders", label: "Orders" },
+  { key: "orders",   label: "Orders" },
 ];
+
+const SORT_KEY: Record<string, string> = {
+  company: "name", location: "location", contacts: "contacts", orders: "orders",
+};
 
 export interface CompanyRow {
   id: string;
@@ -41,12 +47,9 @@ export interface CompanyRow {
 
 type Dir = "asc" | "desc";
 
-function SortHeader({
-  label, col, sort, dir, search, show,
-}: {
-  label: string; col: string; sort: string; dir: Dir; search: string; show: boolean;
+function SortHeader({ label, col, sort, dir, search }: {
+  label: string; col: string; sort: string; dir: Dir; search: string;
 }) {
-  if (!show) return null;
   const isActive = sort === col;
   const nextDir: Dir = isActive && dir === "asc" ? "desc" : "asc";
   const Icon = isActive ? (dir === "asc" ? ChevronUp : ChevronDown) : ChevronsUpDown;
@@ -74,14 +77,27 @@ interface Props {
   pages: number;
 }
 
+function getCompanyValue(row: CompanyRow, key: string): unknown {
+  switch (key) {
+    case "company":  return row.name;
+    case "location": return [row.city, row.state].filter(Boolean).join(", ") || null;
+    case "contacts": return String(row.contactCount);
+    case "orders":   return String(row.orderCount);
+    default:         return null;
+  }
+}
+
 export default function CompaniesTable({ companies, search, sort, dir, page, pages }: Props) {
-  const { visible, onChange } = useColumnPicker("rx-cols-companies", COLUMNS);
+  const { orderedVisible, allOrdered, hidden, setOrder, setHidden } =
+    useEditColumns("rx-cols-companies", COLUMNS);
+  const [filterRules, setFilterRules] = useState<FilterRule[]>([]);
   const router = useRouter();
-  const sh = { sort, dir, search };
+
+  const filtered = applyFilters(companies, filterRules, getCompanyValue);
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const allSelected = companies.length > 0 && companies.every((c) => selectedIds.has(c.id));
-  const someSelected = companies.some((c) => selectedIds.has(c.id)) && !allSelected;
+  const allSelected = filtered.length > 0 && filtered.every((c) => selectedIds.has(c.id));
+  const someSelected = filtered.some((c) => selectedIds.has(c.id)) && !allSelected;
   const checkAllRef = useRef<HTMLInputElement>(null);
 
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -114,9 +130,7 @@ export default function CompaniesTable({ companies, search, sort, dir, page, pag
   useEffect(() => { setSelectedIds(new Set()); }, [companies]);
   useEffect(() => { if (checkAllRef.current) checkAllRef.current.indeterminate = someSelected; }, [someSelected]);
 
-  function toggleAll() {
-    setSelectedIds(allSelected ? new Set() : new Set(companies.map((c) => c.id)));
-  }
+  function toggleAll() { setSelectedIds(allSelected ? new Set() : new Set(filtered.map((c) => c.id))); }
   function toggleOne(id: string) {
     setSelectedIds((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
   }
@@ -124,15 +138,13 @@ export default function CompaniesTable({ companies, search, sort, dir, page, pag
   async function handleDelete() {
     setBulkLoading(true);
     const res = await fetch("/api/crm/companies/bulk", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "delete", ids: [...selectedIds] }),
     });
     setBulkLoading(false);
     if (!res.ok) { toast.error("Failed to delete companies"); return; }
     toast.success(`${selectedIds.size} compan${selectedIds.size > 1 ? "ies" : "y"} deleted`);
-    setSelectedIds(new Set()); setConfirmDelete(false);
-    router.refresh();
+    setSelectedIds(new Set()); setConfirmDelete(false); router.refresh();
   }
 
   async function handleEdit() {
@@ -151,8 +163,7 @@ export default function CompaniesTable({ companies, search, sort, dir, page, pag
     if (Object.keys(data).length === 0) { toast.error("No changes to apply"); return; }
     setBulkLoading(true);
     const res = await fetch("/api/crm/companies/bulk", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "update", ids: [...selectedIds], data }),
     });
     setBulkLoading(false);
@@ -170,7 +181,8 @@ export default function CompaniesTable({ companies, search, sort, dir, page, pag
           preserveParams={{ sort, dir }}
           className="flex-1 border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
         />
-        <ColumnPicker columns={COLUMNS} visible={visible} onChange={onChange} />
+        <EditColumns columns={allOrdered} hidden={hidden} onOrder={setOrder} onHidden={setHidden} />
+        <ColumnPicker columns={allOrdered} onFilter={setFilterRules} />
       </div>
 
       {selectedIds.size > 0 && (
@@ -179,19 +191,13 @@ export default function CompaniesTable({ companies, search, sort, dir, page, pag
           {confirmDelete ? (
             <>
               <span className="opacity-90">Delete {selectedIds.size} compan{selectedIds.size > 1 ? "ies" : "y"}?</span>
-              <button onClick={handleDelete} disabled={bulkLoading} className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md font-medium disabled:opacity-50">
-                {bulkLoading ? "Deleting…" : "Confirm"}
-              </button>
+              <button onClick={handleDelete} disabled={bulkLoading} className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md font-medium disabled:opacity-50">{bulkLoading ? "Deleting…" : "Confirm"}</button>
               <button onClick={() => setConfirmDelete(false)} className="opacity-80 hover:opacity-100">Cancel</button>
             </>
           ) : (
             <>
-              <button onClick={() => setShowEdit(true)} className="inline-flex items-center gap-1.5 bg-white/15 hover:bg-white/25 px-3 py-1 rounded-md transition-colors">
-                <Pencil className="w-3.5 h-3.5" /> Edit
-              </button>
-              <button onClick={() => setConfirmDelete(true)} className="inline-flex items-center gap-1.5 bg-white/15 hover:bg-red-500 px-3 py-1 rounded-md transition-colors">
-                <Trash2 className="w-3.5 h-3.5" /> Delete
-              </button>
+              <button onClick={() => setShowEdit(true)} className="inline-flex items-center gap-1.5 bg-white/15 hover:bg-white/25 px-3 py-1 rounded-md transition-colors"><Pencil className="w-3.5 h-3.5" /> Edit</button>
+              <button onClick={() => setConfirmDelete(true)} className="inline-flex items-center gap-1.5 bg-white/15 hover:bg-red-500 px-3 py-1 rounded-md transition-colors"><Trash2 className="w-3.5 h-3.5" /> Delete</button>
               <button onClick={() => setSelectedIds(new Set())} className="opacity-70 hover:opacity-100 ml-1"><X className="w-4 h-4" /></button>
             </>
           )}
@@ -210,18 +216,14 @@ export default function CompaniesTable({ companies, search, sort, dir, page, pag
                 <div className="space-y-1">
                   {EDIT_FIELDS.map((f) => (
                     <label key={f.key} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted cursor-pointer select-none">
-                      <input type="checkbox" checked={pickedFields.has(f.key)} onChange={() => togglePick(f.key)}
-                        className="rounded border-gray-300 text-primary focus:ring-primary/50 cursor-pointer" />
+                      <input type="checkbox" checked={pickedFields.has(f.key)} onChange={() => togglePick(f.key)} className="rounded border-gray-300 text-primary focus:ring-primary/50 cursor-pointer" />
                       <span className="text-sm">{f.label}</span>
                     </label>
                   ))}
                 </div>
                 <div className="flex justify-end gap-2 pt-2">
                   <button onClick={closeEdit} className="inline-flex items-center h-8 px-3 rounded-lg text-sm border border-border bg-background hover:bg-muted">Cancel</button>
-                  <button onClick={() => setEditStep("fill")} disabled={pickedFields.size === 0}
-                    className="inline-flex items-center h-8 px-3 rounded-lg text-sm bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40">
-                    Next →
-                  </button>
+                  <button onClick={() => setEditStep("fill")} disabled={pickedFields.size === 0} className="inline-flex items-center h-8 px-3 rounded-lg text-sm bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40">Next →</button>
                 </div>
               </>
             ) : (
@@ -231,89 +233,21 @@ export default function CompaniesTable({ companies, search, sort, dir, page, pag
                   <p className="text-xs text-muted-foreground mt-0.5">Only filled fields will be applied.</p>
                 </div>
                 <div className="space-y-3 max-h-[55vh] overflow-y-auto pr-1">
-                  {pickedFields.has("industry") && (
-                    <div>
-                      <label className="text-sm font-medium block mb-1">Industry</label>
-                      <input value={editIndustry} onChange={(e) => setEditIndustry(e.target.value)} placeholder="e.g. Healthcare"
-                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
-                    </div>
-                  )}
-                  {pickedFields.has("phone") && (
-                    <div>
-                      <label className="text-sm font-medium block mb-1">Phone</label>
-                      <input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} placeholder="+63 2 1234 5678"
-                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
-                    </div>
-                  )}
-                  {pickedFields.has("email") && (
-                    <div>
-                      <label className="text-sm font-medium block mb-1">Email</label>
-                      <input type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} placeholder="contact@company.com"
-                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
-                    </div>
-                  )}
-                  {pickedFields.has("website") && (
-                    <div>
-                      <label className="text-sm font-medium block mb-1">Website</label>
-                      <input value={editWebsite} onChange={(e) => setEditWebsite(e.target.value)} placeholder="https://company.com"
-                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
-                    </div>
-                  )}
-                  {pickedFields.has("address") && (
-                    <div>
-                      <label className="text-sm font-medium block mb-1">Address</label>
-                      <input value={editAddress} onChange={(e) => setEditAddress(e.target.value)} placeholder="123 Main St"
-                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
-                    </div>
-                  )}
-                  {pickedFields.has("city") && (
-                    <div>
-                      <label className="text-sm font-medium block mb-1">City</label>
-                      <input value={editCity} onChange={(e) => setEditCity(e.target.value)} placeholder="Manila"
-                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
-                    </div>
-                  )}
-                  {pickedFields.has("state") && (
-                    <div>
-                      <label className="text-sm font-medium block mb-1">State / Province</label>
-                      <input value={editState} onChange={(e) => setEditState(e.target.value)} placeholder="Metro Manila"
-                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
-                    </div>
-                  )}
-                  {pickedFields.has("country") && (
-                    <div>
-                      <label className="text-sm font-medium block mb-1">Country</label>
-                      <input value={editCountry} onChange={(e) => setEditCountry(e.target.value)} placeholder="Philippines"
-                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
-                    </div>
-                  )}
-                  {pickedFields.has("postalCode") && (
-                    <div>
-                      <label className="text-sm font-medium block mb-1">Postal Code</label>
-                      <input value={editPostalCode} onChange={(e) => setEditPostalCode(e.target.value)} placeholder="1000"
-                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
-                    </div>
-                  )}
-                  {pickedFields.has("taxId") && (
-                    <div>
-                      <label className="text-sm font-medium block mb-1">Tax ID</label>
-                      <input value={editTaxId} onChange={(e) => setEditTaxId(e.target.value)} placeholder="e.g. 123-456-789"
-                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
-                    </div>
-                  )}
-                  {pickedFields.has("notes") && (
-                    <div>
-                      <label className="text-sm font-medium block mb-1">Notes</label>
-                      <textarea value={editNotes} onChange={(e) => setEditNotes(e.target.value)} placeholder="Internal notes…" rows={3}
-                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none" />
-                    </div>
-                  )}
+                  {pickedFields.has("industry") && (<div><label className="text-sm font-medium block mb-1">Industry</label><input value={editIndustry} onChange={(e) => setEditIndustry(e.target.value)} placeholder="e.g. Healthcare" className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" /></div>)}
+                  {pickedFields.has("phone")    && (<div><label className="text-sm font-medium block mb-1">Phone</label><input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} placeholder="+63 2 1234 5678" className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" /></div>)}
+                  {pickedFields.has("email")    && (<div><label className="text-sm font-medium block mb-1">Email</label><input type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} placeholder="contact@company.com" className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" /></div>)}
+                  {pickedFields.has("website")  && (<div><label className="text-sm font-medium block mb-1">Website</label><input value={editWebsite} onChange={(e) => setEditWebsite(e.target.value)} placeholder="https://company.com" className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" /></div>)}
+                  {pickedFields.has("address")  && (<div><label className="text-sm font-medium block mb-1">Address</label><input value={editAddress} onChange={(e) => setEditAddress(e.target.value)} placeholder="123 Main St" className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" /></div>)}
+                  {pickedFields.has("city")     && (<div><label className="text-sm font-medium block mb-1">City</label><input value={editCity} onChange={(e) => setEditCity(e.target.value)} placeholder="Manila" className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" /></div>)}
+                  {pickedFields.has("state")    && (<div><label className="text-sm font-medium block mb-1">State / Province</label><input value={editState} onChange={(e) => setEditState(e.target.value)} placeholder="Metro Manila" className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" /></div>)}
+                  {pickedFields.has("country")  && (<div><label className="text-sm font-medium block mb-1">Country</label><input value={editCountry} onChange={(e) => setEditCountry(e.target.value)} placeholder="Philippines" className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" /></div>)}
+                  {pickedFields.has("postalCode") && (<div><label className="text-sm font-medium block mb-1">Postal Code</label><input value={editPostalCode} onChange={(e) => setEditPostalCode(e.target.value)} placeholder="1000" className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" /></div>)}
+                  {pickedFields.has("taxId")    && (<div><label className="text-sm font-medium block mb-1">Tax ID</label><input value={editTaxId} onChange={(e) => setEditTaxId(e.target.value)} placeholder="e.g. 123-456-789" className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" /></div>)}
+                  {pickedFields.has("notes")    && (<div><label className="text-sm font-medium block mb-1">Notes</label><textarea value={editNotes} onChange={(e) => setEditNotes(e.target.value)} placeholder="Internal notes…" rows={3} className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none" /></div>)}
                 </div>
                 <div className="flex justify-end gap-2 pt-2">
                   <button onClick={() => setEditStep("pick")} className="inline-flex items-center h-8 px-3 rounded-lg text-sm border border-border bg-background hover:bg-muted">← Back</button>
-                  <button onClick={handleEdit} disabled={bulkLoading} className="inline-flex items-center h-8 px-3 rounded-lg text-sm bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
-                    {bulkLoading ? "Saving…" : "Apply Changes"}
-                  </button>
+                  <button onClick={handleEdit} disabled={bulkLoading} className="inline-flex items-center h-8 px-3 rounded-lg text-sm bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">{bulkLoading ? "Saving…" : "Apply Changes"}</button>
                 </div>
               </>
             )}
@@ -321,7 +255,7 @@ export default function CompaniesTable({ companies, search, sort, dir, page, pag
         </div>
       )}
 
-      {companies.length === 0 ? (
+      {filtered.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
           <Building2 className="w-12 h-12 mx-auto mb-4 opacity-30" />
           <p className="font-medium">No companies yet</p>
@@ -333,51 +267,45 @@ export default function CompaniesTable({ companies, search, sort, dir, page, pag
             <thead className="bg-gray-50 dark:bg-[var(--rx-surface)]">
               <tr>
                 <th className="w-10 px-4 py-3">
-                  <input ref={checkAllRef} type="checkbox" checked={allSelected} onChange={toggleAll}
-                    className="rounded border-gray-300 text-primary focus:ring-primary/50 cursor-pointer" />
+                  <input ref={checkAllRef} type="checkbox" checked={allSelected} onChange={toggleAll} className="rounded border-gray-300 text-primary focus:ring-primary/50 cursor-pointer" />
                 </th>
-                <SortHeader label="Company"  col="name"     {...sh} show={visible.has("company")} />
-                <SortHeader label="Location" col="location" {...sh} show={visible.has("location")} />
-                <SortHeader label="Contacts" col="contacts" {...sh} show={visible.has("contacts")} />
-                <SortHeader label="Orders"   col="orders"   {...sh} show={visible.has("orders")} />
+                {orderedVisible.map((col) => (
+                  <SortHeader key={col.key} label={col.label} col={SORT_KEY[col.key] ?? col.key} sort={sort} dir={dir} search={search} />
+                ))}
               </tr>
             </thead>
             <tbody className="divide-y">
-              {companies.map((c) => (
+              {filtered.map((c) => (
                 <tr key={c.id} className={`hover:bg-gray-50 dark:hover:bg-[var(--rx-surface)] ${selectedIds.has(c.id) ? "bg-blue-50 dark:bg-blue-900/10" : ""}`}>
                   <td className="w-10 px-4 py-3">
-                    <input type="checkbox" checked={selectedIds.has(c.id)} onChange={() => toggleOne(c.id)}
-                      className="rounded border-gray-300 text-primary focus:ring-primary/50 cursor-pointer" />
+                    <input type="checkbox" checked={selectedIds.has(c.id)} onChange={() => toggleOne(c.id)} className="rounded border-gray-300 text-primary focus:ring-primary/50 cursor-pointer" />
                   </td>
-                  {visible.has("company") && (
-                    <td className="px-4 py-3">
-                      <Link href={`/crm/companies/${c.id}`} className="font-medium text-blue-600 hover:underline">
-                        {c.name}
-                      </Link>
-                      {c.email && <p className="text-xs text-muted-foreground">{c.email}</p>}
-                    </td>
-                  )}
-                  {visible.has("location") && (
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {[c.city, c.state].filter(Boolean).join(", ") || "—"}
-                    </td>
-                  )}
-                  {visible.has("contacts") && (
-                    <td className="px-4 py-3">
-                      <span className="inline-flex items-center gap-1 text-muted-foreground">
-                        <Users className="w-3.5 h-3.5" />
-                        {c.contactCount}
-                      </span>
-                    </td>
-                  )}
-                  {visible.has("orders") && (
-                    <td className="px-4 py-3">
-                      <span className="inline-flex items-center gap-1 text-muted-foreground">
-                        <ShoppingCart className="w-3.5 h-3.5" />
-                        {c.orderCount}
-                      </span>
-                    </td>
-                  )}
+                  {orderedVisible.map((col) => {
+                    switch (col.key) {
+                      case "company":
+                        return (
+                          <td key="company" className="px-4 py-3">
+                            <Link href={`/crm/companies/${c.id}`} className="font-medium text-blue-600 hover:underline">{c.name}</Link>
+                            {c.email && <p className="text-xs text-muted-foreground">{c.email}</p>}
+                          </td>
+                        );
+                      case "location":
+                        return <td key="location" className="px-4 py-3 text-muted-foreground">{[c.city, c.state].filter(Boolean).join(", ") || "—"}</td>;
+                      case "contacts":
+                        return (
+                          <td key="contacts" className="px-4 py-3">
+                            <span className="inline-flex items-center gap-1 text-muted-foreground"><Users className="w-3.5 h-3.5" />{c.contactCount}</span>
+                          </td>
+                        );
+                      case "orders":
+                        return (
+                          <td key="orders" className="px-4 py-3">
+                            <span className="inline-flex items-center gap-1 text-muted-foreground"><ShoppingCart className="w-3.5 h-3.5" />{c.orderCount}</span>
+                          </td>
+                        );
+                      default: return null;
+                    }
+                  })}
                 </tr>
               ))}
             </tbody>
@@ -389,16 +317,8 @@ export default function CompaniesTable({ companies, search, sort, dir, page, pag
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">Page {page} of {pages}</span>
           <div className="flex gap-2">
-            {page > 1 && (
-              <Link href={`?page=${page - 1}&search=${search}&sort=${sort}&dir=${dir}`} className="inline-flex items-center h-7 px-3 rounded-lg text-sm font-medium border border-border bg-background hover:bg-muted transition-all">
-                Previous
-              </Link>
-            )}
-            {page < pages && (
-              <Link href={`?page=${page + 1}&search=${search}&sort=${sort}&dir=${dir}`} className="inline-flex items-center h-7 px-3 rounded-lg text-sm font-medium border border-border bg-background hover:bg-muted transition-all">
-                Next
-              </Link>
-            )}
+            {page > 1 && <Link href={`?page=${page - 1}&search=${search}&sort=${sort}&dir=${dir}`} className="inline-flex items-center h-7 px-3 rounded-lg text-sm font-medium border border-border bg-background hover:bg-muted transition-all">Previous</Link>}
+            {page < pages && <Link href={`?page=${page + 1}&search=${search}&sort=${sort}&dir=${dir}`} className="inline-flex items-center h-7 px-3 rounded-lg text-sm font-medium border border-border bg-background hover:bg-muted transition-all">Next</Link>}
           </div>
         </div>
       )}

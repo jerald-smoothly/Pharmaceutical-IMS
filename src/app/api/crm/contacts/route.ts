@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { nextContactId } from "@/lib/ids";
 import { z } from "zod";
 
 const createSchema = z.object({
@@ -73,7 +74,7 @@ export async function POST(req: NextRequest) {
   }
 
   const contact = await prisma.contact.create({
-    data: parsed.data,
+    data: { ...parsed.data, customerId: await nextContactId() },
     include: { company: { select: { id: true, name: true } } },
   });
 

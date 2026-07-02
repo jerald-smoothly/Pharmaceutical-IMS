@@ -2,18 +2,20 @@
 
 import Link from "next/link";
 import { ShoppingCart, X, Pencil, Trash2 } from "lucide-react";
-import { ColumnPicker, useColumnPicker, ColDef } from "@/components/shared/ColumnPicker";
+import { ColumnPicker, applyFilters } from "@/components/shared/ColumnPicker";
+import type { ColDef, FilterRule } from "@/components/shared/ColumnPicker";
+import { EditColumns, useEditColumns } from "@/components/shared/EditColumns";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 const COLUMNS: ColDef[] = [
   { key: "orderNumber", label: "Order #" },
-  { key: "customer", label: "Customer" },
-  { key: "items", label: "Items" },
-  { key: "total", label: "Total" },
-  { key: "status", label: "Status" },
-  { key: "date", label: "Date" },
+  { key: "customer",    label: "Customer" },
+  { key: "items",       label: "Items" },
+  { key: "total",       label: "Total" },
+  { key: "status",      label: "Status" },
+  { key: "date",        label: "Date", type: "date" as const },
 ];
 
 const EDIT_FIELDS = [
@@ -48,13 +50,29 @@ interface Props {
   pages: number;
 }
 
+function getOrderValue(row: OrderRow, key: string): unknown {
+  switch (key) {
+    case "orderNumber": return row.orderNumber;
+    case "customer":    return row.company?.name ?? (row.contact ? `${row.contact.firstName} ${row.contact.lastName}` : null);
+    case "items":       return String(row.itemCount);
+    case "total":       return row.totalAmount.toFixed(2);
+    case "status":      return row.status.toLowerCase();
+    case "date":        return row.placedAt.slice(0, 10);
+    default:            return null;
+  }
+}
+
 export default function OrdersTable({ orders, status, page, pages }: Props) {
-  const { visible, onChange } = useColumnPicker("rx-cols-orders", COLUMNS);
+  const { orderedVisible, allOrdered, hidden, setOrder, setHidden } =
+    useEditColumns("rx-cols-orders", COLUMNS);
+  const [filterRules, setFilterRules] = useState<FilterRule[]>([]);
   const router = useRouter();
 
+  const filtered = applyFilters(orders, filterRules, getOrderValue);
+
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const allSelected = orders.length > 0 && orders.every((o) => selectedIds.has(o.id));
-  const someSelected = orders.some((o) => selectedIds.has(o.id)) && !allSelected;
+  const allSelected = filtered.length > 0 && filtered.every((o) => selectedIds.has(o.id));
+  const someSelected = filtered.some((o) => selectedIds.has(o.id)) && !allSelected;
   const checkAllRef = useRef<HTMLInputElement>(null);
 
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -76,9 +94,7 @@ export default function OrdersTable({ orders, status, page, pages }: Props) {
   useEffect(() => { setSelectedIds(new Set()); }, [orders]);
   useEffect(() => { if (checkAllRef.current) checkAllRef.current.indeterminate = someSelected; }, [someSelected]);
 
-  function toggleAll() {
-    setSelectedIds(allSelected ? new Set() : new Set(orders.map((o) => o.id)));
-  }
+  function toggleAll() { setSelectedIds(allSelected ? new Set() : new Set(filtered.map((o) => o.id))); }
   function toggleOne(id: string) {
     setSelectedIds((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
   }
@@ -86,15 +102,13 @@ export default function OrdersTable({ orders, status, page, pages }: Props) {
   async function handleDelete() {
     setBulkLoading(true);
     const res = await fetch("/api/orders/bulk", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "delete", ids: [...selectedIds] }),
     });
     setBulkLoading(false);
     if (!res.ok) { toast.error("Failed to delete orders"); return; }
     toast.success(`${selectedIds.size} order${selectedIds.size > 1 ? "s" : ""} deleted`);
-    setSelectedIds(new Set()); setConfirmDelete(false);
-    router.refresh();
+    setSelectedIds(new Set()); setConfirmDelete(false); router.refresh();
   }
 
   async function handleEdit() {
@@ -104,8 +118,7 @@ export default function OrdersTable({ orders, status, page, pages }: Props) {
     if (Object.keys(data).length === 0) { toast.error("No changes to apply"); return; }
     setBulkLoading(true);
     const res = await fetch("/api/orders/bulk", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "update", ids: [...selectedIds], data }),
     });
     setBulkLoading(false);
@@ -114,10 +127,13 @@ export default function OrdersTable({ orders, status, page, pages }: Props) {
     closeEdit(); setSelectedIds(new Set()); router.refresh();
   }
 
+  const thClass = "px-4 py-3 text-left font-medium text-gray-600 dark:text-muted-foreground";
+
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
-        <ColumnPicker columns={COLUMNS} visible={visible} onChange={onChange} />
+      <div className="flex justify-end gap-3">
+        <EditColumns columns={allOrdered} hidden={hidden} onOrder={setOrder} onHidden={setHidden} />
+        <ColumnPicker columns={allOrdered} onFilter={setFilterRules} />
       </div>
 
       {selectedIds.size > 0 && (
@@ -126,19 +142,13 @@ export default function OrdersTable({ orders, status, page, pages }: Props) {
           {confirmDelete ? (
             <>
               <span className="opacity-90">Delete {selectedIds.size} order{selectedIds.size > 1 ? "s" : ""}?</span>
-              <button onClick={handleDelete} disabled={bulkLoading} className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md font-medium disabled:opacity-50">
-                {bulkLoading ? "Deleting…" : "Confirm"}
-              </button>
+              <button onClick={handleDelete} disabled={bulkLoading} className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md font-medium disabled:opacity-50">{bulkLoading ? "Deleting…" : "Confirm"}</button>
               <button onClick={() => setConfirmDelete(false)} className="opacity-80 hover:opacity-100">Cancel</button>
             </>
           ) : (
             <>
-              <button onClick={() => setShowEdit(true)} className="inline-flex items-center gap-1.5 bg-white/15 hover:bg-white/25 px-3 py-1 rounded-md transition-colors">
-                <Pencil className="w-3.5 h-3.5" /> Edit
-              </button>
-              <button onClick={() => setConfirmDelete(true)} className="inline-flex items-center gap-1.5 bg-white/15 hover:bg-red-500 px-3 py-1 rounded-md transition-colors">
-                <Trash2 className="w-3.5 h-3.5" /> Delete
-              </button>
+              <button onClick={() => setShowEdit(true)} className="inline-flex items-center gap-1.5 bg-white/15 hover:bg-white/25 px-3 py-1 rounded-md transition-colors"><Pencil className="w-3.5 h-3.5" /> Edit</button>
+              <button onClick={() => setConfirmDelete(true)} className="inline-flex items-center gap-1.5 bg-white/15 hover:bg-red-500 px-3 py-1 rounded-md transition-colors"><Trash2 className="w-3.5 h-3.5" /> Delete</button>
               <button onClick={() => setSelectedIds(new Set())} className="opacity-70 hover:opacity-100 ml-1"><X className="w-4 h-4" /></button>
             </>
           )}
@@ -157,18 +167,14 @@ export default function OrdersTable({ orders, status, page, pages }: Props) {
                 <div className="space-y-1">
                   {EDIT_FIELDS.map((f) => (
                     <label key={f.key} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted cursor-pointer select-none">
-                      <input type="checkbox" checked={pickedFields.has(f.key)} onChange={() => togglePick(f.key)}
-                        className="rounded border-gray-300 text-primary focus:ring-primary/50 cursor-pointer" />
+                      <input type="checkbox" checked={pickedFields.has(f.key)} onChange={() => togglePick(f.key)} className="rounded border-gray-300 text-primary focus:ring-primary/50 cursor-pointer" />
                       <span className="text-sm">{f.label}</span>
                     </label>
                   ))}
                 </div>
                 <div className="flex justify-end gap-2 pt-2">
                   <button onClick={closeEdit} className="inline-flex items-center h-8 px-3 rounded-lg text-sm border border-border bg-background hover:bg-muted">Cancel</button>
-                  <button onClick={() => setEditStep("fill")} disabled={pickedFields.size === 0}
-                    className="inline-flex items-center h-8 px-3 rounded-lg text-sm bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40">
-                    Next →
-                  </button>
+                  <button onClick={() => setEditStep("fill")} disabled={pickedFields.size === 0} className="inline-flex items-center h-8 px-3 rounded-lg text-sm bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40">Next →</button>
                 </div>
               </>
             ) : (
@@ -181,8 +187,7 @@ export default function OrdersTable({ orders, status, page, pages }: Props) {
                   {pickedFields.has("status") && (
                     <div>
                       <label className="text-sm font-medium block mb-1">Status</label>
-                      <select value={editStatus} onChange={(e) => setEditStatus(e.target.value)}
-                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 bg-background">
+                      <select value={editStatus} onChange={(e) => setEditStatus(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 bg-background">
                         <option value="">— Select —</option>
                         <option value="PENDING">Pending</option>
                         <option value="CONFIRMED">Confirmed</option>
@@ -196,16 +201,13 @@ export default function OrdersTable({ orders, status, page, pages }: Props) {
                   {pickedFields.has("notes") && (
                     <div>
                       <label className="text-sm font-medium block mb-1">Notes</label>
-                      <textarea value={editNotes} onChange={(e) => setEditNotes(e.target.value)} placeholder="Order notes…" rows={3}
-                        className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none" />
+                      <textarea value={editNotes} onChange={(e) => setEditNotes(e.target.value)} placeholder="Order notes…" rows={3} className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none" />
                     </div>
                   )}
                 </div>
                 <div className="flex justify-end gap-2 pt-2">
                   <button onClick={() => setEditStep("pick")} className="inline-flex items-center h-8 px-3 rounded-lg text-sm border border-border bg-background hover:bg-muted">← Back</button>
-                  <button onClick={handleEdit} disabled={bulkLoading} className="inline-flex items-center h-8 px-3 rounded-lg text-sm bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
-                    {bulkLoading ? "Saving…" : "Apply Changes"}
-                  </button>
+                  <button onClick={handleEdit} disabled={bulkLoading} className="inline-flex items-center h-8 px-3 rounded-lg text-sm bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">{bulkLoading ? "Saving…" : "Apply Changes"}</button>
                 </div>
               </>
             )}
@@ -213,7 +215,7 @@ export default function OrdersTable({ orders, status, page, pages }: Props) {
         </div>
       )}
 
-      {orders.length === 0 ? (
+      {filtered.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
           <ShoppingCart className="w-12 h-12 mx-auto mb-4 opacity-30" />
           <p className="font-medium">No orders found</p>
@@ -224,51 +226,51 @@ export default function OrdersTable({ orders, status, page, pages }: Props) {
             <thead className="bg-gray-50 dark:bg-[var(--rx-surface)]">
               <tr>
                 <th className="w-10 px-4 py-3">
-                  <input ref={checkAllRef} type="checkbox" checked={allSelected} onChange={toggleAll}
-                    className="rounded border-gray-300 text-primary focus:ring-primary/50 cursor-pointer" />
+                  <input ref={checkAllRef} type="checkbox" checked={allSelected} onChange={toggleAll} className="rounded border-gray-300 text-primary focus:ring-primary/50 cursor-pointer" />
                 </th>
-                {visible.has("orderNumber") && <th className="px-4 py-3 text-left font-medium text-gray-600 dark:text-muted-foreground">Order #</th>}
-                {visible.has("customer")    && <th className="px-4 py-3 text-left font-medium text-gray-600 dark:text-muted-foreground">Customer</th>}
-                {visible.has("items")       && <th className="px-4 py-3 text-left font-medium text-gray-600 dark:text-muted-foreground">Items</th>}
-                {visible.has("total")       && <th className="px-4 py-3 text-left font-medium text-gray-600 dark:text-muted-foreground">Total</th>}
-                {visible.has("status")      && <th className="px-4 py-3 text-left font-medium text-gray-600 dark:text-muted-foreground">Status</th>}
-                {visible.has("date")        && <th className="px-4 py-3 text-left font-medium text-gray-600 dark:text-muted-foreground">Date</th>}
+                {orderedVisible.map((col) => (
+                  <th key={col.key} className={thClass}>{col.label}</th>
+                ))}
               </tr>
             </thead>
             <tbody className="divide-y">
-              {orders.map((o) => (
+              {filtered.map((o) => (
                 <tr key={o.id} className={`hover:bg-gray-50 dark:hover:bg-[var(--rx-surface)] ${selectedIds.has(o.id) ? "bg-blue-50 dark:bg-blue-900/10" : ""}`}>
                   <td className="w-10 px-4 py-3">
-                    <input type="checkbox" checked={selectedIds.has(o.id)} onChange={() => toggleOne(o.id)}
-                      className="rounded border-gray-300 text-primary focus:ring-primary/50 cursor-pointer" />
+                    <input type="checkbox" checked={selectedIds.has(o.id)} onChange={() => toggleOne(o.id)} className="rounded border-gray-300 text-primary focus:ring-primary/50 cursor-pointer" />
                   </td>
-                  {visible.has("orderNumber") && (
-                    <td className="px-4 py-3">
-                      <Link href={`/orders/${o.id}`} className="font-medium text-blue-600 hover:underline">{o.orderNumber}</Link>
-                    </td>
-                  )}
-                  {visible.has("customer") && (
-                    <td className="px-4 py-3">
-                      <p className="font-medium">
-                        {o.company?.name ?? (o.contact ? `${o.contact.firstName} ${o.contact.lastName}` : "Unknown")}
-                      </p>
-                      {o.company && o.contact && (
-                        <p className="text-xs text-muted-foreground">{o.contact.firstName} {o.contact.lastName}</p>
-                      )}
-                    </td>
-                  )}
-                  {visible.has("items")  && <td className="px-4 py-3 text-muted-foreground">{o.itemCount} units</td>}
-                  {visible.has("total")  && <td className="px-4 py-3 font-medium">${o.totalAmount.toFixed(2)}</td>}
-                  {visible.has("status") && (
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[o.status] ?? ""}`}>
-                        {o.status.charAt(0) + o.status.slice(1).toLowerCase()}
-                      </span>
-                    </td>
-                  )}
-                  {visible.has("date") && (
-                    <td className="px-4 py-3 text-muted-foreground">{new Date(o.placedAt).toLocaleDateString()}</td>
-                  )}
+                  {orderedVisible.map((col) => {
+                    switch (col.key) {
+                      case "orderNumber":
+                        return (
+                          <td key="orderNumber" className="px-4 py-3">
+                            <Link href={`/orders/${o.id}`} className="font-medium text-blue-600 hover:underline">{o.orderNumber}</Link>
+                          </td>
+                        );
+                      case "customer":
+                        return (
+                          <td key="customer" className="px-4 py-3">
+                            <p className="font-medium">{o.company?.name ?? (o.contact ? `${o.contact.firstName} ${o.contact.lastName}` : "Unknown")}</p>
+                            {o.company && o.contact && <p className="text-xs text-muted-foreground">{o.contact.firstName} {o.contact.lastName}</p>}
+                          </td>
+                        );
+                      case "items":
+                        return <td key="items" className="px-4 py-3 text-muted-foreground">{o.itemCount} units</td>;
+                      case "total":
+                        return <td key="total" className="px-4 py-3 font-medium">${o.totalAmount.toFixed(2)}</td>;
+                      case "status":
+                        return (
+                          <td key="status" className="px-4 py-3">
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[o.status] ?? ""}`}>
+                              {o.status.charAt(0) + o.status.slice(1).toLowerCase()}
+                            </span>
+                          </td>
+                        );
+                      case "date":
+                        return <td key="date" className="px-4 py-3 text-muted-foreground">{new Date(o.placedAt).toLocaleDateString()}</td>;
+                      default: return null;
+                    }
+                  })}
                 </tr>
               ))}
             </tbody>

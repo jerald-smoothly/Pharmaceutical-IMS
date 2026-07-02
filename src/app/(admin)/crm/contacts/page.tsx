@@ -31,7 +31,6 @@ async function syncEmployeeContacts() {
 
 function buildOrderBy(sort: string, dir: Dir) {
   switch (sort) {
-    case "company": return [{ company: { name: dir } }];
     case "title":   return [{ title: dir }];
     case "email":   return [{ email: dir }];
     case "phone":   return [{ phone: dir }];
@@ -64,20 +63,18 @@ async function getContacts(search: string, page: number, sort: string, dir: Dir)
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [contacts, total, companies] = await Promise.all([
+  const [contacts, total] = await Promise.all([
     prisma.contact.findMany({
       where: where as any,
-      include: { company: { select: { id: true, name: true } } },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       orderBy: buildOrderBy(sort, dir) as any,
       skip: (page - 1) * limit,
       take: limit,
     }),
     prisma.contact.count({ where: where as any }),
-    prisma.company.findMany({ where: { isActive: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);
 
-  return { contacts, total, pages: Math.ceil(total / limit), companies };
+  return { contacts, total, pages: Math.ceil(total / limit) };
 }
 
 interface Props {
@@ -90,7 +87,7 @@ export default async function ContactsPage({ searchParams }: Props) {
   const page = parseInt(params.page ?? "1");
   const sort = params.sort ?? "name";
   const dir: Dir = params.dir === "desc" ? "desc" : "asc";
-  const { contacts, total, pages, companies } = await getContacts(search, page, sort, dir);
+  const { contacts, total, pages } = await getContacts(search, page, sort, dir);
 
   return (
     <div className="p-8 space-y-6">
@@ -106,7 +103,7 @@ export default async function ContactsPage({ searchParams }: Props) {
               Import Contacts
             </button>
           </ImportCrmDialog>
-          <ContactFormDialog companies={companies}>
+          <ContactFormDialog>
             <button className="inline-flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/80 h-8 px-3 rounded-lg text-sm font-medium transition-all">
               <Plus className="w-4 h-4" />
               Add Contact

@@ -44,13 +44,14 @@ export default function OrderFormDialog({ children, products, contacts, companie
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [orderName, setOrderName] = useState("");
   const [contactId, setContactId] = useState("");
   const [companyId, setCompanyId] = useState("");
   const [notes, setNotes] = useState("");
   const [items, setItems] = useState<OrderItem[]>([{ productId: "", quantity: 1 }]);
 
   function reset() {
-    setContactId(""); setCompanyId(""); setNotes("");
+    setOrderName(""); setContactId(""); setCompanyId(""); setNotes("");
     setItems([{ productId: "", quantity: 1 }]);
   }
 
@@ -88,6 +89,7 @@ export default function OrderFormDialog({ children, products, contacts, companie
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        orderName: orderName.trim() || undefined,
         contactId: contactId || undefined,
         companyId: companyId || undefined,
         notes: notes.trim() || undefined,
@@ -117,6 +119,15 @@ export default function OrderFormDialog({ children, products, contacts, companie
             <DialogTitle>Create Order</DialogTitle>
           </DialogHeader>
           <form onSubmit={onSubmit} className="space-y-4 pt-2">
+            <div>
+              <label className="text-sm font-medium text-gray-700 block mb-1">Order Name</label>
+              <input
+                type="text"
+                value={orderName}
+                onChange={(e) => setOrderName(e.target.value)}
+                className={inputClass}
+              />
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium text-gray-700 block mb-1">Contact</label>

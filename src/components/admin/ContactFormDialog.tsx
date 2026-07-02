@@ -88,17 +88,14 @@ interface Contact {
   notes?: string | null;
 }
 
-interface Company { id: string; name: string; }
-
 interface Props {
   children: React.ReactNode;
   contact?: Contact;
-  companies: Company[];
 }
 
 const inputClass = "w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500";
 
-export default function ContactFormDialog({ children, contact, companies }: Props) {
+export default function ContactFormDialog({ children, contact }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -165,13 +162,15 @@ export default function ContactFormDialog({ children, contact, companies }: Prop
     const data: Record<string, string | null> = {};
 
     fd.forEach((v, k) => {
-      if (k === "companyId") return;
       const val = String(v).trim();
       if (val) data[k] = val;
     });
 
-    data.companyId = String(fd.get("companyId") ?? "").trim() || null;
-    data.phone = phoneInput.trim() ? parseToE164(phoneInput, country) : null;
+    if (phoneInput.trim()) {
+      data.phone = parseToE164(phoneInput, country);
+    } else {
+      data.phone = null;
+    }
 
     const url = contact ? `/api/crm/contacts/${contact.id}` : "/api/crm/contacts";
     const method = contact ? "PATCH" : "POST";
@@ -238,7 +237,7 @@ export default function ContactFormDialog({ children, contact, companies }: Prop
                 <input name="email" type="email" required defaultValue={contact?.email ?? ""} className={inputClass} />
               </div>
               <div className="col-span-2">
-                <label className="text-sm font-medium text-gray-700 block mb-1">Phone</label>
+                <label className="text-sm font-medium text-gray-700 block mb-1">Phone Number</label>
                 <div className="flex gap-2">
                   <select
                     value={country}
@@ -268,22 +267,13 @@ export default function ContactFormDialog({ children, contact, companies }: Prop
                   </div>
                 </div>
               </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700 block mb-1">Title</label>
+              <div className="col-span-2">
+                <label className="text-sm font-medium text-gray-700 block mb-1">Job Title</label>
                 <input name="title" defaultValue={contact?.title ?? ""} className={inputClass} />
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700 block mb-1">Department</label>
                 <input name="department" defaultValue={contact?.department ?? ""} className={inputClass} />
-              </div>
-              <div className="col-span-2">
-                <label className="text-sm font-medium text-gray-700 block mb-1">Company</label>
-                <select name="companyId" defaultValue={contact?.companyId ?? ""} className={`${inputClass} bg-white`}>
-                  <option value="">— None —</option>
-                  {companies.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
               </div>
               <div className="col-span-2">
                 <label className="text-sm font-medium text-gray-700 block mb-1">Notes</label>

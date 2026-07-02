@@ -177,7 +177,7 @@ export default function AdminSidebar({ user }: Props) {
         </div>
         <button
           onClick={() => signOut({ callbackUrl: "/login" })}
-          className="w-full flex items-center gap-[10px] px-3 py-[9px] rounded-[9px] text-[13px] font-medium text-[var(--rx-sb-text)] hover:bg-[var(--rx-sb-hover)] transition-colors"
+          className="w-full flex items-center justify-center gap-[10px] px-3 py-[9px] rounded-[9px] text-[13px] font-medium text-[var(--rx-sb-text)] hover:bg-[var(--rx-sb-hover)] transition-colors"
         >
           <span className="text-[var(--rx-sb-icon)]" style={{ lineHeight: 0 }}>
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">

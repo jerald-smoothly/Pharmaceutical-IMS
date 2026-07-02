@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { nextOrderId } from "@/lib/ids";
 import { z } from "zod";
 
 const createSchema = z.object({
+  orderName: z.string().optional(),
   contactId: z.string().optional(),
   companyId: z.string().optional(),
   notes: z.string().optional(),
@@ -17,11 +19,6 @@ const createSchema = z.object({
     .min(1),
 });
 
-function generateOrderNumber() {
-  const year = new Date().getFullYear();
-  const rand = Math.floor(Math.random() * 90000) + 10000;
-  return `ORD-${year}-${rand}`;
-}
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -125,7 +122,8 @@ export async function POST(req: NextRequest) {
 
   const order = await prisma.order.create({
     data: {
-      orderNumber: generateOrderNumber(),
+      orderNumber: await nextOrderId(),
+      orderName: parsed.data.orderName,
       contactId: resolvedContactId,
       companyId: resolvedCompanyId,
       notes: parsed.data.notes,

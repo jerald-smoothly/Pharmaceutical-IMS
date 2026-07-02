@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { nextContactId } from "@/lib/ids";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
 
@@ -102,6 +103,7 @@ export async function POST(req: NextRequest) {
         }
         await prisma.contact.create({
           data: {
+            customerId: await nextContactId(),
             firstName,
             lastName,
             email,

@@ -4,7 +4,9 @@ import { prisma } from "@/lib/db";
 import { z } from "zod";
 
 const updateSchema = z.object({
-  status: z.enum(["CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"]),
+  status: z.enum(["CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"]).optional(),
+  contactId: z.string().nullable().optional(),
+  companyId: z.string().nullable().optional(),
 });
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -38,12 +40,18 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
+  const { status, contactId, companyId } = parsed.data;
+  const data: Record<string, unknown> = {};
+  if (status !== undefined) {
+    data.status = status;
+    if (status === "DELIVERED") data.fulfilledAt = new Date();
+  }
+  if (contactId !== undefined) data.contactId = contactId;
+  if (companyId !== undefined) data.companyId = companyId;
+
   const order = await prisma.order.update({
     where: { id },
-    data: {
-      status: parsed.data.status,
-      ...(parsed.data.status === "DELIVERED" ? { fulfilledAt: new Date() } : {}),
-    },
+    data,
     include: {
       company: { select: { name: true } },
       contact: { select: { firstName: true, lastName: true, email: true } },
@@ -51,15 +59,17 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     },
   });
 
-  await prisma.auditLog.create({
-    data: {
-      userId: session.user.id,
-      action: "STATUS_UPDATE",
-      entity: "Order",
-      entityId: id,
-      after: { status: parsed.data.status },
-    },
-  });
+  if (status !== undefined) {
+    await prisma.auditLog.create({
+      data: {
+        userId: session.user.id,
+        action: "STATUS_UPDATE",
+        entity: "Order",
+        entityId: id,
+        after: { status },
+      },
+    });
+  }
 
   return NextResponse.json(order);
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { nextProductId } from "@/lib/ids";
 import { z } from "zod";
 
 const createSchema = z.object({
@@ -11,8 +12,14 @@ const createSchema = z.object({
   category: z.string().optional(),
   description: z.string().optional(),
   unit: z.string().default("box"),
-  unitPrice: z.coerce.number().positive("Unit price must be greater than 0"),
+  unitPrice: z.coerce.number().nonnegative().default(0),
+  expiryDate: z.string().regex(/^\d{2}\/\d{2}\/\d{4}$/).optional().transform((val) => {
+    if (!val) return undefined;
+    const [m, d, y] = val.split("/").map(Number);
+    return new Date(Date.UTC(y, m - 1, d));
+  }),
   requiresPrescription: z.boolean().default(false),
+  initialStock: z.coerce.number().int().nonnegative().optional(),
 });
 
 export async function GET(req: NextRequest) {
@@ -33,7 +40,6 @@ export async function GET(req: NextRequest) {
             OR: [
               { name: { contains: search, mode: "insensitive" as const } },
               { sku: { contains: search, mode: "insensitive" as const } },
-              { genericName: { contains: search, mode: "insensitive" as const } },
             ],
           }
         : {},
@@ -89,7 +95,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  const { sku, ...rest } = parsed.data;
+  const { sku, initialStock, ...rest } = parsed.data;
   const normalizedSku = sku.trim().toUpperCase();
 
   const existing = await prisma.product.findUnique({ where: { sku: normalizedSku } });
@@ -98,8 +104,19 @@ export async function POST(req: NextRequest) {
   }
 
   const product = await prisma.product.create({
-    data: { sku: normalizedSku, ...rest },
+    data: { productNumber: await nextProductId(), sku: normalizedSku, ...rest },
   });
+
+  if (initialStock && initialStock > 0) {
+    await prisma.productBatch.create({
+      data: {
+        productId: product.id,
+        batchNumber: `INIT-${Date.now()}`,
+        expiryDate: new Date(Date.UTC(2099, 11, 31)),
+        quantityIn: initialStock,
+      },
+    });
+  }
 
   await prisma.auditLog.create({
     data: {
@@ -107,7 +124,7 @@ export async function POST(req: NextRequest) {
       action: "CREATE",
       entity: "Product",
       entityId: product.id,
-      after: { sku: normalizedSku, ...rest },
+      after: { sku: normalizedSku, ...rest, initialStock },
     },
   });
 
